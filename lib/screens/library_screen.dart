@@ -5,8 +5,6 @@ import 'package:inkwave/models/book.dart';
 class LibraryScreen extends StatelessWidget {
   final List<int> bookIndexes;
 
-  // BuyBooksScreen'deki "storeBooks"ı burada da okumak için basit bir yaklaşım:
-  // Normalde bu listeye global olarak, Provider veya benzeri state management aracılığıyla erişmek daha mantıklı.
   LibraryScreen({Key? key, required this.bookIndexes}) : super(key: key);
 
   final List<Book> storeBooks = [

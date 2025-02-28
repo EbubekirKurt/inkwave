@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 class TranslateApi {
   static const String _baseUrl = "https://api.mymemory.translated.net";
 
-  /// **📌 Desteklenen Dilleri Getir**
   static Future<List<Map<String, String>>> getLanguages() async {
     return [
       {"code": "en", "name": "English"},
@@ -17,7 +16,6 @@ class TranslateApi {
     ];
   }
 
-  /// **📌 Metni Çevir**
   static Future<String> translateText(String text, String from, String to) async {
     if (text.isEmpty) return "";
 

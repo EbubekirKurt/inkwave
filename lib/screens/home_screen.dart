@@ -24,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchBooks() async {
     try {
-      final fetchedBooks = await BooksApi.searchBooks("Daily");
+      final fetchedBooks = await BooksApi.searchBooks("Programming");
       setState(() {
         books = fetchedBooks;
         _isLoading = false;
@@ -42,12 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // **Başlığı Sabitleyen SliverAppBar**
-          SliverAppBar(
-            pinned: true, // **Başlığı sabit yap**
+          const SliverAppBar(
+            pinned: true,
             expandedHeight: 100.0,
             backgroundColor: AppConstants.primaryColor,
-            flexibleSpace: const FlexibleSpaceBar(
+            flexibleSpace: FlexibleSpaceBar(
               title: Text("Inkwave", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               centerTitle: true,
             ),
