@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
@@ -15,9 +16,38 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Book> _searchResults = [];
   bool _isLoading = false;
+  Timer? _debounceTimer;
 
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  /// **📌 Kullanıcı her karakter yazdığında arama yapılacak (Debounce ile gecikmeli)**
+  void _onSearchChanged() {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _searchBooks();
+    });
+  }
+
+  /// **📌 Kitap Arama Fonksiyonu**
   void _searchBooks() async {
-    if (_searchController.text.isEmpty) return;
+    if (_searchController.text.isEmpty) {
+      setState(() {
+        _searchResults = [];
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -37,6 +67,14 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  /// **📌 Arama Kutusunu Temizleme**
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchResults = [];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -49,34 +87,31 @@ class _SearchScreenState extends State<SearchScreen> {
             children: [
               Text("Kitap Ara", style: AppConstants.headlineStyle),
               const SizedBox(height: 20),
-              TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white10,
-                  hintText: 'Kitap veya yazar ara...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.white54),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchResults = [];
-                      });
-                    },
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Kitap veya yazar ara...',
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    border: InputBorder.none,
+                    prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.white54),
+                      onPressed: _clearSearch, // **Arama temizleme fonksiyonu**
+                    )
+                        : null,
                   ),
                 ),
-                onSubmitted: (value) => _searchBooks(),
               ),
               const SizedBox(height: 20),
 
-              // Arama Sonuçları
+              // **Arama Sonuçları**
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -93,8 +128,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       leading: book.imageUrl.isNotEmpty
                           ? Image.network(book.imageUrl, width: 50, height: 75, fit: BoxFit.cover)
                           : const Icon(Icons.book, size: 50, color: Colors.grey),
-                      title: Text(book.title, style: TextStyle(color: Colors.white)),
-                      subtitle: Text(book.author, style: TextStyle(color: Colors.white70)),
+                      title: Text(book.title, style: const TextStyle(color: Colors.white)),
+                      subtitle: Text(book.author, style: const TextStyle(color: Colors.white70)),
                       trailing: const Icon(Icons.arrow_forward, color: Colors.white),
                       onTap: () {
                         Navigator.push(

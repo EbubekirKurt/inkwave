@@ -22,6 +22,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
     _fetchLanguages();
   }
 
+  /// **📌 Desteklenen dilleri getir**
   void _fetchLanguages() async {
     final languages = await TranslateApi.getLanguages();
     setState(() {
@@ -29,6 +30,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
     });
   }
 
+  /// **📌 Metni çevir**
   void _translateText() async {
     if (_textController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,13 +45,17 @@ class _TranslateScreenState extends State<TranslateScreen> {
 
     try {
       final translated = await TranslateApi.translateText(
-        _textController.text,
+        _textController.text.trim(),
         _fromLang,
         _toLang,
       );
+
       setState(() {
         _translatedText = translated;
       });
+
+      print("✅ Doğru Çeviri Sonucu: $translated");
+
     } catch (e) {
       setState(() {
         _translatedText = "Çeviri başarısız!";
@@ -108,120 +114,22 @@ class _TranslateScreenState extends State<TranslateScreen> {
                 const SizedBox(height: 20),
 
                 // **Giriş Alanı**
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: "Çevirmek istediğiniz metni yazın...",
-                            hintStyle: TextStyle(color: Colors.white54),
-                          ),
-                          maxLines: 3,
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.paste, color: Colors.white54),
-                            onPressed: _pasteFromClipboard, // **Panodan yapıştır**
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.white54),
-                            onPressed: _clearInputText, // **Metni temizle**
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                _buildTextInputField(),
+
                 const SizedBox(height: 16),
 
                 // **Dil Seçim Alanı**
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildDropdown(_fromLang, (value) {
-                      setState(() {
-                        _fromLang = value!;
-                      });
-                    }),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          String temp = _fromLang;
-                          _fromLang = _toLang;
-                          _toLang = temp;
-                        });
-                      },
-                      child: const Icon(Icons.swap_horiz, color: Colors.white, size: 30),
-                    ),
-                    _buildDropdown(_toLang, (value) {
-                      setState(() {
-                        _toLang = value!;
-                      });
-                    }),
-                  ],
-                ),
+                _buildLanguageSelection(),
+
                 const SizedBox(height: 16),
 
                 // **Çeviri Butonu**
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: _translateText,
-                    icon: const Icon(Icons.translate, color: Colors.white),
-                    label: const Text("Çevir", style: TextStyle(fontSize: 18, color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
+                _buildTranslateButton(),
+
                 const SizedBox(height: 16),
 
                 // **Çeviri Sonucu**
-                const Text("Çeviri:", style: TextStyle(fontSize: 18, color: Colors.white)),
-                AnimatedOpacity(
-                  opacity: _translatedText.isEmpty ? 0 : 1,
-                  duration: const Duration(milliseconds: 500),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _translatedText,
-                            style: const TextStyle(fontSize: 16, color: Colors.white),
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.copy, color: Colors.white54),
-                              onPressed: _copyToClipboard, // **Çeviri metnini kopyala**
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _buildTranslationResult(),
               ],
             ),
           ),
@@ -230,16 +138,137 @@ class _TranslateScreenState extends State<TranslateScreen> {
     );
   }
 
+  /// **📌 Metin giriş alanı**
+  Widget _buildTextInputField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: "Çevirmek istediğiniz metni yazın...",
+                hintStyle: TextStyle(color: Colors.white54),
+              ),
+              maxLines: 3,
+            ),
+          ),
+          Column(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.paste, color: Colors.white54),
+                onPressed: _pasteFromClipboard,
+              ),
+              IconButton(
+                icon: const Icon(Icons.clear, color: Colors.white54),
+                onPressed: _clearInputText,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// **📌 Dil seçme alanı**
+  Widget _buildLanguageSelection() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildDropdown(_fromLang, (value) {
+          setState(() {
+            _fromLang = value!;
+          });
+        }),
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              String temp = _fromLang;
+              _fromLang = _toLang;
+              _toLang = temp;
+            });
+          },
+          child: const Icon(Icons.swap_horiz, color: Colors.white, size: 30),
+        ),
+        _buildDropdown(_toLang, (value) {
+          setState(() {
+            _toLang = value!;
+          });
+        }),
+      ],
+    );
+  }
+
+  /// **📌 Çeviri butonu**
+  Widget _buildTranslateButton() {
+    return Center(
+      child: ElevatedButton.icon(
+        onPressed: _translateText,
+        icon: const Icon(Icons.translate, color: Colors.white),
+        label: const Text("Çevir", style: TextStyle(fontSize: 18, color: Colors.white)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blueAccent,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// **📌 Çeviri Sonucu**
+  Widget _buildTranslationResult() {
+    return AnimatedOpacity(
+      opacity: _translatedText.isEmpty ? 0 : 1,
+      duration: const Duration(milliseconds: 500),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _translatedText,
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            ),
+            Column(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.copy, color: Colors.white54),
+                  onPressed: _copyToClipboard,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// **📌 Dropdown (Dil Seçimi)**
   Widget _buildDropdown(String selectedValue, Function(String?) onChanged) {
     return DropdownButton<String>(
       dropdownColor: const Color(0xFF2D2D44),
       value: selectedValue,
-      items: _languages
-          .map((lang) => DropdownMenuItem(
-        value: lang["code"],
-        child: Text(lang["name"]!, style: const TextStyle(color: Colors.white)),
-      ))
-          .toList(),
+      items: _languages.map((lang) {
+        return DropdownMenuItem(
+          value: lang["code"],
+          child: Text(lang["name"]!, style: const TextStyle(color: Colors.white)),
+        );
+      }).toList(),
       onChanged: onChanged,
       icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
       underline: Container(),
