@@ -37,10 +37,14 @@ flutter:
   assets:
     - assets/images/
     - assets/app_images/inkwave.png
+    - assets/app_images/book.png
+    - assets/app_images/image.png
 
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/app_images/inkwave.png"
-  adaptive_icon_foreground: "assets/app_images/inkwave.png"
-  adaptive_icon_background: "#121212"
+  image_path: "assets/app_images/book.png"
+  adaptive_icon_foreground: "assets/app_images/book.png"
+  adaptive_icon_background: "#000000"
+  remove_alpha_ios: true
+
