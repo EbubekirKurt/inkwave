@@ -29,13 +29,13 @@ class NewestBooksWidget extends StatelessWidget {
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                image: DecorationImage(
-                  image: AssetImage(book.imageUrl),
+                image: book.imageUrl.isNotEmpty
+                    ? DecorationImage(
+                  image: NetworkImage(book.imageUrl),
                   fit: BoxFit.cover,
-                  onError: (exception, stackTrace) {
-                    print("Hata: ${book.imageUrl} yüklenemedi!");
-                  },
-                ),
+                )
+                    : null,
+                color: book.imageUrl.isEmpty ? Colors.grey : null,
               ),
               child: book.imageUrl.isEmpty
                   ? const Icon(Icons.broken_image, color: Colors.red)

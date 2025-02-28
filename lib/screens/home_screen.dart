@@ -1,86 +1,123 @@
 import 'package:flutter/material.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
+import 'package:inkwave/services/books_api.dart';
 import 'package:inkwave/widgets/newest_books_widget.dart';
 
-class HomeScreen extends StatelessWidget {
-  HomeScreen({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
 
-  final List<Book> books = [
-    Book(
-      title: 'XNA 3.0 Game Programming Recipes',
-      author: 'Renear Grigajus',
-      imageUrl: 'assets/images/xna.jpeg',
-      rating: 4.0,
-      description: 'A problem-solution approach to XNA 3.0 game programming.',
-      price: 0.0,
-    ),
-    Book(
-      title: 'Gamers at Work',
-      author: 'Morgan Ramsay',
-      imageUrl: 'assets/images/gaw.jpeg',
-      rating: 4.2,
-      description: 'Stories behind the games people play.',
-      price: 0.0,
-    ),
-    Book(
-      title: 'IT Expert Level',
-      author: 'John Doe',
-      imageUrl: 'assets/images/etm.jpg',
-      rating: 3.5,
-      description: 'The advanced concepts of IT domain.',
-      price: 0.0,
-    ),
-  ];
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Book> books = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBooks();
+  }
+
+  Future<void> _fetchBooks() async {
+    try {
+      final fetchedBooks = await BooksApi.searchBooks("Daily");
+      setState(() {
+        books = fetchedBooks;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padding),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Inkwave", style: AppConstants.headlineStyle),
-              const SizedBox(height: 20),
-              // Yatay kaydırılabilir en yeni kitaplar
-              NewestBooksWidget(books: books),
-              const SizedBox(height: 20),
-              Text("Newest Books", style: AppConstants.headlineStyle),
-              const SizedBox(height: 10),
-              // Dikey liste (Kitap isimleri, rating vb.)
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: books.length,
-                itemBuilder: (context, index) {
-                  final book = books[index];
-                  return ListTile(
-                    leading: SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: Image.asset(book.imageUrl, fit: BoxFit.cover),
-                    ),
-                    title: Text(book.title, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(
-                      'Free • ⭐ ${book.rating.toStringAsFixed(1)}',
-                      style: AppConstants.subtitleStyle,
-                    ),
-                    onTap: () {
-                      // Kitap detay sayfasına git
-                      Navigator.pushNamed(
-                        context,
-                        '/bookDetail',
-                        arguments: book,
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          // **Başlığı Sabitleyen SliverAppBar**
+          SliverAppBar(
+            pinned: true, // **Başlığı sabit yap**
+            expandedHeight: 100.0,
+            backgroundColor: AppConstants.primaryColor,
+            flexibleSpace: const FlexibleSpaceBar(
+              title: Text("Inkwave", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              centerTitle: true,
+            ),
           ),
-        ),
+
+          // **Kitap İçeriklerini Gösteren Bölüm**
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppConstants.padding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+
+                  // **En Yeni Kitaplar (Yatay Kaydırma)**
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_hasError)
+                    const Center(
+                      child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
+                    )
+                  else
+                    NewestBooksWidget(books: books),
+
+                  const SizedBox(height: 20),
+                  Text("Newest Books", style: AppConstants.headlineStyle),
+                  const SizedBox(height: 10),
+
+                  // **Dikey Kitap Listesi**
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_hasError)
+                    const Center(
+                      child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: books.length,
+                      itemBuilder: (context, index) {
+                        final book = books[index];
+                        return ListTile(
+                          leading: SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: book.imageUrl.isNotEmpty
+                                ? Image.network(book.imageUrl, fit: BoxFit.cover)
+                                : const Icon(Icons.broken_image, color: Colors.grey),
+                          ),
+                          title: Text(book.title, style: const TextStyle(color: Colors.white)),
+                          subtitle: Text(
+                            '⭐ ${book.rating.toStringAsFixed(1)}',
+                            style: AppConstants.subtitleStyle,
+                          ),
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/bookDetail',
+                              arguments: book,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
