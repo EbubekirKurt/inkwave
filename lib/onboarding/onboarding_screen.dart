@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:inkwave/screens/home_screen.dart';
-
-import '../main.dart';
+import 'package:inkwave/onboarding/onboarding_interests.dart';
 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -13,7 +11,7 @@ class OnboardingScreen extends StatelessWidget {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const MainScreen()),
+      MaterialPageRoute(builder: (context) => const OnboardingInterestsScreen()),
     );
   }
 
@@ -24,7 +22,7 @@ class OnboardingScreen extends StatelessWidget {
       body: Center(
         child: ElevatedButton(
           onPressed: () => completeOnboarding(context),
-          child: Text("Başla"),
+          child: const Text("Devam Et"),
         ),
       ),
     );

@@ -63,6 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '148134255966',
     projectId: 'inkwave-01',
     storageBucket: 'inkwave-01.firebasestorage.app',
+    androidClientId: '148134255966-tp1pre8en9le6eqhmbgsb95ragmi6krv.apps.googleusercontent.com',
+    iosClientId: '148134255966-tjmiktovlvuq300ehu8p0mrf7q1ok1l0.apps.googleusercontent.com',
     iosBundleId: 'com.example.inkwave',
   );
 
@@ -72,6 +74,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '148134255966',
     projectId: 'inkwave-01',
     storageBucket: 'inkwave-01.firebasestorage.app',
+    androidClientId: '148134255966-tp1pre8en9le6eqhmbgsb95ragmi6krv.apps.googleusercontent.com',
+    iosClientId: '148134255966-tjmiktovlvuq300ehu8p0mrf7q1ok1l0.apps.googleusercontent.com',
     iosBundleId: 'com.example.inkwave',
   );
 
@@ -83,4 +87,5 @@ class DefaultFirebaseOptions {
     authDomain: 'inkwave-01.firebaseapp.com',
     storageBucket: 'inkwave-01.firebasestorage.app',
   );
+
 }
