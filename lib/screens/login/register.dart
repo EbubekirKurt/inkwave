@@ -91,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Container(
             height: 250,
             child: RiveAnimation.asset(
-              "assets/teddy.riv",
+              "assets/rivs/teddy.riv",
               fit: BoxFit.contain,
               controllers: [_controller],
             ),

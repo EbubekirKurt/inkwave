@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Container(
             height: 250,
             child: RiveAnimation.asset(
-              "assets/teddy.riv",
+              "assets/rivs/teddy.riv",
               fit: BoxFit.contain,
               controllers: [_controller],
             ),
