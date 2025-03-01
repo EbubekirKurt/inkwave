@@ -11,22 +11,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # UI & Icons
   cupertino_icons: ^1.0.8
-
-  # Network Requests
   http: ^1.2.1
-
-  # External Link Handling
   url_launcher: ^6.3.0
-
-  # WebView Support
   webview_flutter: ^4.4.4
-
-  # App Icon Generator
   flutter_launcher_icons: ^0.13.1
-
   shared_preferences: ^2.2.2
+  flare_flutter: ^3.0.2
+  rive: 0.13.20
+
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.15.3
+  google_sign_in: ^6.2.2
 
 
 dev_dependencies:
@@ -42,6 +39,7 @@ flutter:
     - assets/app_images/inkwave.png
     - assets/app_images/book.png
     - assets/app_images/image.png
+    - assets/rivs/teddy.riv
 
 flutter_icons:
   android: true

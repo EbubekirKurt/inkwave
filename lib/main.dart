@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/home_screen.dart';
 import 'package:inkwave/screens/library_screen.dart';
@@ -8,19 +11,89 @@ import 'package:inkwave/screens/search_screen.dart';
 import 'package:inkwave/screens/book_detail_screen.dart';
 import 'package:inkwave/screens/translate_screen.dart';
 import 'package:inkwave/onboarding/onboarding_screen.dart';
+import 'package:inkwave/onboarding/onboarding_interests.dart';
+import 'package:inkwave/onboarding/onboarding_finish.dart';
+import 'package:inkwave/screens/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final bool isFirstTime = prefs.getBool("first_time") ?? true;
-
-  runApp(MyApp(isFirstTime: isFirstTime));
+  await Firebase.initializeApp();
+  runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  final bool isFirstTime;
+class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-  const MyApp({Key? key, required this.isFirstTime}) : super(key: key);
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _isFirstTime = true;
+  bool _isProfileCompleted = false;
+  bool _isInterestSelected = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserData();
+  }
+
+  Future<void> _checkUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Kullanıcı giriş yaptı mı kontrol et
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // 🔥 İlk defa giriş yapan bir kullanıcıysa, onboarding'e yönlendirmek için `SharedPreferences` sıfırlanmalı.
+    if (prefs.getBool("first_time") == null) {
+      await prefs.setBool("first_time", true);
+      await prefs.setBool("interest_selected", false);
+      await prefs.setBool("profile_completed", false);
+    }
+
+    // SharedPreferences verilerini oku
+    _isFirstTime = prefs.getBool("first_time") ?? true;
+    _isInterestSelected = prefs.getBool("interest_selected") ?? false;
+    _isProfileCompleted = prefs.getBool("profile_completed") ?? false;
+
+    // 🔥 Firestore'dan kullanıcının verisi var mı diye kontrol et
+    try {
+      DocumentSnapshot userDoc =
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+      if (userDoc.exists) {
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+
+        // Eğer kullanıcı Firestore'da kayıtlıysa, onboarding sürecini güncelle
+        if (userData.containsKey("name") &&
+            userData.containsKey("surname") &&
+            userData.containsKey("phone_number")) {
+          _isProfileCompleted = true;
+          prefs.setBool("profile_completed", true);
+        }
+
+        if (userData.containsKey("interest")) {
+          _isInterestSelected = true;
+          prefs.setBool("interest_selected", true);
+        }
+      }
+    } catch (e) {
+      print("Firestore veri okuma hatası: $e");
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,9 +106,32 @@ class MyApp extends StatelessWidget {
           secondary: AppConstants.accentColor,
         ),
       ),
-      home: isFirstTime ? const OnboardingScreen() : const MainScreen(),
       debugShowCheckedModeBanner: false,
+      home: _isLoading
+          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          : StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          if (snapshot.hasData) {
+            if (_isFirstTime) {
+              return const OnboardingScreen();
+            } else if (!_isInterestSelected) {
+              return const OnboardingInterestsScreen();
+            } else if (!_isProfileCompleted) {
+              return const OnboardingFinishScreen();
+            } else {
+              return const MainScreen();
+            }
+          } else {
+            return const LoginScreen();
+          }
+        },
+      ),
       routes: {
+        '/home': (context) => const MainScreen(),
         '/bookDetail': (context) => const BookDetailScreen(),
       },
     );
@@ -59,11 +155,11 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _pages = [
-      HomeScreen(),                                      // Ana Sayfa
-      TranslateScreen(),                                 // Çeviri Ekranı
-      SearchScreen(),                                    // Arama
-      LibraryScreen(bookIndexes: libraryBookIndexes),    // Kitaplığım
-      ProfileScreen(),                                   // Profilim
+      const HomeScreen(),
+      const TranslateScreen(),
+      const SearchScreen(),
+      LibraryScreen(bookIndexes: libraryBookIndexes),
+      const ProfileScreen(),
     ];
   }
 
@@ -88,7 +184,7 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: AppConstants.accentColor,
         unselectedItemColor: Colors.white54,
         backgroundColor: AppConstants.primaryColor,
-        type: BottomNavigationBarType.fixed,  // ALT ÇUBUĞUN SABİT KALMASINI SAĞLAR
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Ana Sayfa'),
           BottomNavigationBarItem(icon: Icon(Icons.translate), label: 'Çeviri'),
@@ -100,4 +196,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-
