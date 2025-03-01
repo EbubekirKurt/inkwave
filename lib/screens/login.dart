@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:inkwave/onboarding/onboarding_screen.dart';
-import 'package:inkwave/screens/home_screen.dart';
+import 'login/register.dart';
+import 'login/forgot_password.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -14,7 +13,6 @@ class _LoginScreenState extends State<LoginScreen> {
   late RiveAnimationController _controller;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool isPasswordVisible = false;
   String errorMessage = '';
 
@@ -45,45 +43,20 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
-
-      User? user = userCredential.user;
-      if (user == null) {
-        throw FirebaseAuthException(
-            code: "user-not-found", message: "Kullanıcı bulunamadı.");
-      }
-
-
       setState(() {
         _controller = SimpleAnimation("success");
       });
 
-      final prefs = await SharedPreferences.getInstance();
-      bool isFirstTime = prefs.getBool("first_time") ?? true;
-
-      if (isFirstTime) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
+      // Başarılı giriş sonrası ana ekrana yönlendir
+      Navigator.pushReplacementNamed(context, "/home");
     } on FirebaseAuthException catch (e) {
       setState(() {
         _controller = SimpleAnimation("fail");
         errorMessage = e.message ?? "An error occurred";
-      });
-    } catch (e) {
-      setState(() {
-        _controller = SimpleAnimation("fail");
-        errorMessage = "Unexpected error: $e";
       });
     }
   }
@@ -96,9 +69,9 @@ class _LoginScreenState extends State<LoginScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            height: 300,
+            height: 250,
             child: RiveAnimation.asset(
-              "assets/rivs/teddy.riv",
+              "assets/teddy.riv",
               fit: BoxFit.contain,
               controllers: [_controller],
             ),
@@ -164,12 +137,46 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Text(
                     "Sign In",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
                   ),
+                ),
+                SizedBox(height: 15),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ForgotPasswordScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Forgot Password?",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => RegisterScreen()),
+                        );
+                      },
+                      child: Text(
+                        "Sign Up",
+                        style: TextStyle(
+                          color: Color(0xFFFFC107),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
