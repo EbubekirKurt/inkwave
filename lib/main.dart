@@ -14,6 +14,7 @@ import 'package:inkwave/onboarding/onboarding_screen.dart';
 import 'package:inkwave/onboarding/onboarding_interests.dart';
 import 'package:inkwave/onboarding/onboarding_finish.dart';
 import 'package:inkwave/screens/login.dart';
+import 'package:inkwave/screens/social/social.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,19 +54,16 @@ class _MyAppState extends State<MyApp> {
       return;
     }
 
-    // 🔥 İlk defa giriş yapan bir kullanıcıysa, onboarding'e yönlendirmek için `SharedPreferences` sıfırlanmalı.
     if (prefs.getBool("first_time") == null) {
       await prefs.setBool("first_time", true);
       await prefs.setBool("interest_selected", false);
       await prefs.setBool("profile_completed", false);
     }
 
-    // SharedPreferences verilerini oku
     _isFirstTime = prefs.getBool("first_time") ?? true;
     _isInterestSelected = prefs.getBool("interest_selected") ?? false;
     _isProfileCompleted = prefs.getBool("profile_completed") ?? false;
 
-    // 🔥 Firestore'dan kullanıcının verisi var mı diye kontrol et
     try {
       DocumentSnapshot userDoc =
       await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
@@ -73,7 +71,6 @@ class _MyAppState extends State<MyApp> {
       if (userDoc.exists) {
         Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
 
-        // Eğer kullanıcı Firestore'da kayıtlıysa, onboarding sürecini güncelle
         if (userData.containsKey("name") &&
             userData.containsKey("surname") &&
             userData.containsKey("phone_number")) {
@@ -158,7 +155,7 @@ class _MainScreenState extends State<MainScreen> {
       const HomeScreen(),
       const TranslateScreen(),
       const SearchScreen(),
-      LibraryScreen(bookIndexes: libraryBookIndexes),
+      const SocialPage(),
       const ProfileScreen(),
     ];
   }
@@ -189,7 +186,7 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Ana Sayfa'),
           BottomNavigationBarItem(icon: Icon(Icons.translate), label: 'Çeviri'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Arama'),
-          BottomNavigationBarItem(icon: Icon(Icons.library_books), label: 'Kitaplığım'),
+          BottomNavigationBarItem(icon: Icon(Icons.social_distance), label: 'Sosyal'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profilim'),
         ],
       ),
