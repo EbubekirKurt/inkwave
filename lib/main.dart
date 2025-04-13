@@ -130,6 +130,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/home': (context) => const MainScreen(),
         '/bookDetail': (context) => const BookDetailScreen(),
+        '/search': (context) => const SearchScreen(),
       },
     );
   }

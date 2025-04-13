@@ -1,5 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:inkwave/screens/settings/change_password_screen.dart';
+import 'package:inkwave/screens/settings/kvkk_policy_screen.dart';
+import 'package:inkwave/screens/settings/about_app_screen.dart';
+import 'package:inkwave/screens/settings/feedback_screen.dart';
 
 class SettingsDrawer extends StatelessWidget {
   final VoidCallback onLogout;
@@ -28,8 +32,8 @@ class SettingsDrawer extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
                 ),
-                child: const SafeArea(
-                  child: SettingsDrawerContent(),
+                child: SafeArea(
+                  child: SettingsDrawerContent(onLogout: onLogout),
                 ),
               ),
             ),
@@ -47,19 +51,18 @@ class SettingsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder(); // Bu çağrılmayacak
+    return const Placeholder();
   }
 }
 
 class SettingsDrawerContent extends StatelessWidget {
-  const SettingsDrawerContent({Key? key}) : super(key: key);
+  final VoidCallback onLogout;
+
+  const SettingsDrawerContent({Key? key, required this.onLogout}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Geri alma için context üzerinden eriş
-    final onLogout = (ModalRoute.of(context)?.settings.arguments as Map?)?['onLogout'] as VoidCallback?;
-
-    return SingleChildScrollView( // ✅ Scroll overflow sorunu çözülüyor
+    return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -69,22 +72,34 @@ class SettingsDrawerContent extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.lock_reset),
             title: const Text("Şifreyi Yenile"),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context); // Menüyü kapat
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
+            },
           ),
           ListTile(
             leading: const Icon(Icons.privacy_tip),
             title: const Text("KVKK Politikası"),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const KvkkPolicyScreen()));
+            },
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text("Uygulama Hakkında"),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutAppScreen()));
+            },
           ),
           ListTile(
             leading: const Icon(Icons.feedback),
             title: const Text("Geri Bildirim Gönder"),
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen()));
+            },
           ),
           const SizedBox(height: 40),
           ListTile(
@@ -92,7 +107,7 @@ class SettingsDrawerContent extends StatelessWidget {
             title: const Text("Çıkış Yap", style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.pop(context);
-              onLogout?.call();
+              onLogout();
             },
           ),
         ],

@@ -128,7 +128,7 @@ class ProfileScreen extends StatelessWidget {
     final badges = [
       {"icon": Icons.local_fire_department, "label": "7 Günlük Okuma"},
       {"icon": Icons.timer, "label": "1 Saat Sürekli"},
-      {"icon": Icons.auto_stories, "label": "10 Kitap"},
+      {"icon": Icons.auto_stories, "label": "+10 Kitap"},
     ];
 
     return Wrap(
