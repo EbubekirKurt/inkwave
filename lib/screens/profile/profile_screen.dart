@@ -39,7 +39,7 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => SettingsDrawer.show(context, () => _handleLogout(context)),
+            onPressed: () => SettingsDrawer.show(context),
             tooltip: "Ayarlar",
           )
         ],

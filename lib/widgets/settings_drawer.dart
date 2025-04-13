@@ -4,13 +4,12 @@ import 'package:inkwave/screens/settings/change_password_screen.dart';
 import 'package:inkwave/screens/settings/kvkk_policy_screen.dart';
 import 'package:inkwave/screens/settings/about_app_screen.dart';
 import 'package:inkwave/screens/settings/feedback_screen.dart';
+import 'package:inkwave/utils/auth_helpers.dart';
 
 class SettingsDrawer extends StatelessWidget {
-  final VoidCallback onLogout;
+  const SettingsDrawer({Key? key}) : super(key: key);
 
-  const SettingsDrawer({Key? key, required this.onLogout}) : super(key: key);
-
-  static void show(BuildContext context, VoidCallback onLogout) {
+  static void show(BuildContext context) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -32,8 +31,8 @@ class SettingsDrawer extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
                 ),
-                child: SafeArea(
-                  child: SettingsDrawerContent(onLogout: onLogout),
+                child: const SafeArea(
+                  child: SettingsDrawerContent(),
                 ),
               ),
             ),
@@ -51,14 +50,12 @@ class SettingsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return const Placeholder(); // Bu bileşen doğrudan kullanılmaz
   }
 }
 
 class SettingsDrawerContent extends StatelessWidget {
-  final VoidCallback onLogout;
-
-  const SettingsDrawerContent({Key? key, required this.onLogout}) : super(key: key);
+  const SettingsDrawerContent({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -67,13 +64,16 @@ class SettingsDrawerContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
-          const Text("Ayarlar", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red)),
+          const Text(
+            "Ayarlar",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.red),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.lock_reset),
             title: const Text("Şifreyi Yenile"),
             onTap: () {
-              Navigator.pop(context); // Menüyü kapat
+              Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangePasswordScreen()));
             },
           ),
@@ -107,7 +107,7 @@ class SettingsDrawerContent extends StatelessWidget {
             title: const Text("Çıkış Yap", style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.pop(context);
-              onLogout();
+              handleLogout(context);
             },
           ),
         ],
