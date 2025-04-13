@@ -161,17 +161,37 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  int _homeKeyCounter = 0;
+  int _libraryKeyCounter = 0;
 
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    TranslateScreen(),
-    SocialPage(),
-    LibraryScreen(),
-    ProfileScreen(),
-  ];
+  late List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = _buildPages();
+  }
+
+  List<Widget> _buildPages() {
+    return [
+      HomeScreen(key: ValueKey('home_$_homeKeyCounter')),
+      const TranslateScreen(),
+      const SocialPage(),
+      LibraryScreen(key: ValueKey('library_$_libraryKeyCounter')),
+      const ProfileScreen(),
+    ];
+  }
 
   void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
+    setState(() {
+      // Eğer aynı sekmeye tekrar basıldıysa key'i değiştir
+      if (_selectedIndex == index) {
+        if (index == 0) _homeKeyCounter++;
+        if (index == 3) _libraryKeyCounter++;
+        _pages = _buildPages(); // Sayfaları yeniden oluştur
+      }
+      _selectedIndex = index;
+    });
   }
 
   @override
