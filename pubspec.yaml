@@ -19,6 +19,9 @@ dependencies:
   shared_preferences: ^2.2.2
   flare_flutter: ^3.0.2
   rive: 0.13.20
+  fl_chart: ^0.63.0
+  flutter_local_notifications: ^19.1.0
+  timezone: ^0.10.0
 
   firebase_core: ^2.32.0
   firebase_auth: ^4.16.0
@@ -44,6 +47,7 @@ flutter:
     - assets/onboarding/welcome.png
     - assets/onboarding/translate.png
     - assets/onboarding/library.png
+    - assets/profile_placeholder.png
 
 flutter_icons:
   android: true

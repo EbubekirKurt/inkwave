@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/home_screen.dart';
 import 'package:inkwave/screens/library_screen.dart';
@@ -10,11 +12,13 @@ import 'package:inkwave/screens/profile/profile_screen.dart';
 import 'package:inkwave/screens/search_screen.dart';
 import 'package:inkwave/screens/book_detail_screen.dart';
 import 'package:inkwave/screens/translate_screen.dart';
+import 'package:inkwave/screens/login.dart';
+import 'package:inkwave/screens/social/social.dart';
+import 'package:inkwave/screens/settings/add_interest.dart';
+import 'package:inkwave/screens/settings/time_spent_screen.dart';
 import 'package:inkwave/onboarding/onboarding_screen.dart';
 import 'package:inkwave/onboarding/onboarding_interests.dart';
 import 'package:inkwave/onboarding/onboarding_finish.dart';
-import 'package:inkwave/screens/login.dart';
-import 'package:inkwave/screens/social/social.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,73 +27,89 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
-
+  const MyApp({super.key});
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  bool _isLoading = true;
   bool _isFirstTime = true;
   bool _isProfileCompleted = false;
   bool _isInterestSelected = false;
-  bool _isLoading = true;
+  DateTime? _sessionStart;
 
   @override
   void initState() {
     super.initState();
-    _checkUserData();
+    WidgetsBinding.instance.addObserver(this);
+    _initializeAppState();
+    _sessionStart = DateTime.now();
   }
 
-  Future<void> _checkUserData() async {
-    final prefs = await SharedPreferences.getInstance();
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    // Kullanıcı giriş yaptı mı kontrol et
+  void _initializeAppState() async {
+    final prefs = await SharedPreferences.getInstance();
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       return;
     }
 
-    if (prefs.getBool("first_time") == null) {
-      await prefs.setBool("first_time", true);
-      await prefs.setBool("interest_selected", false);
-      await prefs.setBool("profile_completed", false);
-    }
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final data = doc.data() ?? {};
 
     _isFirstTime = prefs.getBool("first_time") ?? true;
-    _isInterestSelected = prefs.getBool("interest_selected") ?? false;
-    _isProfileCompleted = prefs.getBool("profile_completed") ?? false;
 
-    try {
-      DocumentSnapshot userDoc =
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-
-      if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-
-        if (userData.containsKey("name") &&
-            userData.containsKey("surname") &&
-            userData.containsKey("phone_number")) {
-          _isProfileCompleted = true;
-          prefs.setBool("profile_completed", true);
-        }
-
-        if (userData.containsKey("interest")) {
-          _isInterestSelected = true;
-          prefs.setBool("interest_selected", true);
-        }
-      }
-    } catch (e) {
-      print("Firestore veri okuma hatası: $e");
+    if (data['name'] != null && data['surname'] != null && data['phone_number'] != null) {
+      _isProfileCompleted = true;
+      await prefs.setBool("profile_completed", true);
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (data['interest'] != null && (data['interest'] as List).isNotEmpty) {
+      _isInterestSelected = true;
+      await prefs.setBool("interest_selected", true);
+    }
+
+    setState(() => _isLoading = false);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      if (_sessionStart != null) {
+        final duration = DateTime.now().difference(_sessionStart!);
+        _updateTimeSpent(duration);
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      _sessionStart = DateTime.now();
+    }
+  }
+
+  Future<void> _updateTimeSpent(Duration duration) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final now = DateTime.now();
+    final key = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final snapshot = await docRef.get();
+    final data = snapshot.data() ?? {};
+
+    int total = data['time_spent'] ?? 0;
+    final logs = Map<String, dynamic>.from(data['time_logs'] ?? {});
+
+    total += duration.inSeconds;
+    logs[key] = (logs[key] ?? 0) + duration.inSeconds;
+
+    await docRef.set({'time_spent': total, 'time_logs': logs}, SetOptions(merge: true));
   }
 
   @override
@@ -112,70 +132,52 @@ class _MyAppState extends State<MyApp> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
-          if (snapshot.hasData) {
-            if (_isFirstTime) {
-              return const OnboardingScreen();
-            } else if (!_isInterestSelected) {
-              return const OnboardingInterestsScreen();
-            } else if (!_isProfileCompleted) {
-              return const OnboardingFinishScreen();
-            } else {
-              return const MainScreen();
-            }
-          } else {
+          if (!snapshot.hasData) {
             return const LoginScreen();
           }
+
+          if (_isFirstTime) return const OnboardingScreen();
+          if (!_isInterestSelected) return const OnboardingInterestsScreen();
+          if (!_isProfileCompleted) return const OnboardingFinishScreen();
+          return const MainScreen();
         },
       ),
       routes: {
         '/home': (context) => const MainScreen(),
         '/bookDetail': (context) => const BookDetailScreen(),
         '/search': (context) => const SearchScreen(),
+        '/add-interests': (context) => const AddInterestsScreen(),
+        '/time-spent': (context) => const TimeSpentScreen(),
       },
     );
   }
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
-
+  const MainScreen({super.key});
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  List<int> libraryBookIndexes = [];
 
-  late List<Widget> _pages;
-
-  @override
-  void initState() {
-    super.initState();
-    _pages = [
-      const HomeScreen(),
-      const TranslateScreen(),
-      const SearchScreen(),
-      const SocialPage(),
-      const ProfileScreen(),
-    ];
-  }
+  final List<Widget> _pages = const [
+    HomeScreen(),
+    TranslateScreen(),
+    SearchScreen(),
+    SocialPage(),
+    ProfileScreen(),
+  ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: IndexedStack(
-          index: _selectedIndex,
-          children: _pages,
-        ),
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
