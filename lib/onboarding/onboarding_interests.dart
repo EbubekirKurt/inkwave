@@ -16,38 +16,41 @@ class _OnboardingInterestsScreenState extends State<OnboardingInterestsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  String _selectedInterest = "";
-  bool _isLoading = true;
-
   final List<String> _interests = [
     "Programlama", "Kişisel Gelişim", "Roman", "Bilim Kurgu", "Psikoloji",
-    "Felsefe", "Tarih", "Sanat", "Ekonomi", "Spor",
+    "Felsefe", "Tarih", "Sanat", "Ekonomi", "Spor", "Diğer",
   ];
+  final List<String> _selectedInterests = [];
+  final TextEditingController _otherController = TextEditingController();
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _checkInterest();
+    _checkIfAlreadyCompleted();
   }
 
-  /// **Kullanıcının Firestore'da ilgi alanı olup olmadığını kontrol eder.**
-  Future<void> _checkInterest() async {
-    User? user = _auth.currentUser;
+  Future<void> _checkIfAlreadyCompleted() async {
+    final user = _auth.currentUser;
     if (user == null) return;
 
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
-      if (userDoc.exists && userDoc.data() != null) {
-        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-        if (data.containsKey("interest") && data["interest"].isNotEmpty) {
-          // Kullanıcı zaten ilgi alanı seçmişse, doğrudan sonraki ekrana geç
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (context) => const OnboardingFinishScreen()));
-          return;
-        }
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      final data = doc.data();
+      if (data != null &&
+          data['name'] != null &&
+          data['surname'] != null &&
+          data['interest'] != null &&
+          (data['interest'] as List).isNotEmpty) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingFinishScreen()),
+        );
+        return;
       }
     } catch (e) {
-      print("Firestore'dan veri çekerken hata oluştu: $e");
+      print("Kullanıcı verisi kontrol edilirken hata oluştu: $e");
     }
 
     setState(() {
@@ -55,26 +58,29 @@ class _OnboardingInterestsScreenState extends State<OnboardingInterestsScreen> {
     });
   }
 
-  /// **Seçilen ilgi alanını Firestore’a kaydeder.**
   Future<void> _saveInterest() async {
-    User? user = _auth.currentUser;
-    if (user == null || _selectedInterest.isEmpty) return;
+    final user = _auth.currentUser;
+    if (user == null || _selectedInterests.isEmpty) return;
+
+    final interestsToSave = List<String>.from(_selectedInterests);
+    if (_selectedInterests.contains("Diğer") && _otherController.text.trim().isNotEmpty) {
+      interestsToSave.add(_otherController.text.trim());
+    }
 
     try {
       await _firestore.collection('users').doc(user.uid).set({
-        "interest": _selectedInterest,
+        "interest": interestsToSave,
       }, SetOptions(merge: true));
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool("interest_selected", true);
 
-      // İlgi alanı kaydedildikten sonra onboarding'in bir sonraki ekranına yönlendir
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const OnboardingFinishScreen()),
+        MaterialPageRoute(builder: (_) => const OnboardingFinishScreen()),
       );
     } catch (e) {
-      print("Firestore'a ilgi alanı kaydedilirken hata oluştu: $e");
+      print("İlgi alanı kaydedilirken hata oluştu: $e");
     }
   }
 
@@ -94,30 +100,33 @@ class _OnboardingInterestsScreenState extends State<OnboardingInterestsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
-          const Center(
-            child: Icon(Icons.book, size: 100, color: Colors.white),
-          ),
+          const Center(child: Icon(Icons.book, size: 100, color: Colors.white)),
           const SizedBox(height: 20),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Text("En çok ilgilendiğin alanı seç:",
+            child: Text("İlgilendiğin alanları seç (birden fazla seçebilirsin):",
                 style: TextStyle(fontSize: 18, color: Colors.white)),
           ),
           const SizedBox(height: 20),
 
-          // İlgi alanları listesi
           Expanded(
             child: ListView.builder(
               itemCount: _interests.length,
               itemBuilder: (context, index) {
-                return RadioListTile<String>(
-                  title: Text(_interests[index], style: const TextStyle(color: Colors.white)),
-                  value: _interests[index],
-                  groupValue: _selectedInterest,
+                final interest = _interests[index];
+                final isSelected = _selectedInterests.contains(interest);
+                return CheckboxListTile(
+                  title: Text(interest, style: const TextStyle(color: Colors.white)),
+                  value: isSelected,
                   activeColor: Colors.amber,
-                  onChanged: (String? value) {
+                  checkColor: Colors.black,
+                  onChanged: (bool? selected) {
                     setState(() {
-                      _selectedInterest = value!;
+                      if (selected == true) {
+                        _selectedInterests.add(interest);
+                      } else {
+                        _selectedInterests.remove(interest);
+                      }
                     });
                   },
                 );
@@ -125,13 +134,28 @@ class _OnboardingInterestsScreenState extends State<OnboardingInterestsScreen> {
             ),
           ),
 
-          // Kaydet Butonu
+          if (_selectedInterests.contains("Diğer"))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: TextField(
+                controller: _otherController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "Diğer ilgi alanınızı yazınız...",
+                  hintStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.1),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                ),
+              ),
+            ),
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _selectedInterest.isEmpty ? null : _saveInterest,
+                onPressed: _selectedInterests.isEmpty ? null : _saveInterest,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.amber,
                   padding: const EdgeInsets.symmetric(vertical: 15),

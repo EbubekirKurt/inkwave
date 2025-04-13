@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'onboarding_data.dart';
+import 'onboarding_interests.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
@@ -46,7 +47,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           TextButton(
             onPressed: () {
-              Navigator.pushReplacementNamed(context, '/home');
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const OnboardingInterestsScreen()),
+              );
             },
             child: const Text("Atla", style: TextStyle(color: Colors.blue)),
           ),
@@ -59,11 +63,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ElevatedButton(
             onPressed: () {
               if (currentIndex == onboardingData.length - 1) {
-                Navigator.pushReplacementNamed(context, '/home');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OnboardingInterestsScreen()),
+                );
               } else {
                 _controller.nextPage(
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.ease);
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.ease,
+                );
               }
             },
             style: ElevatedButton.styleFrom(

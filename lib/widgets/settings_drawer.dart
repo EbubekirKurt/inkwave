@@ -78,6 +78,22 @@ class SettingsDrawerContent extends StatelessWidget {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.interests),
+            title: const Text("İlgi Alanlarını Düzenle"),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/add-interests');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.timer_outlined),
+            title: const Text("Geçirilen Süre"),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/time-spent');
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.privacy_tip),
             title: const Text("KVKK Politikası"),
             onTap: () {

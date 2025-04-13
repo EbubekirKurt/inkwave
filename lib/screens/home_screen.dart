@@ -3,6 +3,8 @@ import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
 import 'package:inkwave/services/books_api.dart';
 import 'package:inkwave/widgets/newest_books_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,16 +17,40 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Book> books = [];
   bool _isLoading = true;
   bool _hasError = false;
+  String _interestKeyword = "Popular"; // Default keyword
 
   @override
   void initState() {
     super.initState();
-    _fetchBooks();
+    _loadUserInterestAndBooks();
+  }
+
+  Future<void> _loadUserInterestAndBooks() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null && doc.data()!.containsKey("interest")) {
+          final interestData = doc["interest"];
+          if (interestData is List && interestData.isNotEmpty) {
+            // İlk ilgi alanını kullan
+            final firstInterest = interestData.first;
+            if (firstInterest is String && firstInterest.isNotEmpty) {
+              _interestKeyword = firstInterest;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print("İlgi alanı alınamadı: $e");
+    } finally {
+      _fetchBooks();
+    }
   }
 
   Future<void> _fetchBooks() async {
     try {
-      final fetchedBooks = await BooksApi.searchBooks("Programming");
+      final fetchedBooks = await BooksApi.searchBooks(_interestKeyword);
       setState(() {
         books = fetchedBooks;
         _isLoading = false;
@@ -56,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Opacity( // Solda boşluk dengesi
+                const Opacity(
                   opacity: 0,
                   child: Icon(Icons.search),
                 ),
@@ -88,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
               NewestBooksWidget(books: books),
 
             const SizedBox(height: 30),
-            const Text("Newest Books", style: AppConstants.headlineStyle),
+            Text("$_interestKeyword Kitaplar", style: AppConstants.headlineStyle),
             const SizedBox(height: 10),
 
             if (_isLoading)

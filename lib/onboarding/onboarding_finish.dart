@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/home_screen.dart';
-
 import '../main.dart';
 
 class OnboardingFinishScreen extends StatefulWidget {
@@ -16,11 +15,14 @@ class OnboardingFinishScreen extends StatefulWidget {
 class _OnboardingFinishScreenState extends State<OnboardingFinishScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController surnameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController phoneBodyController = TextEditingController();
   final TextEditingController birthdayController = TextEditingController();
   final TextEditingController nationalityController = TextEditingController();
+
+  String _phonePrefix = "+90";
   bool _isSaving = false;
 
   void _selectDate() async {
@@ -52,12 +54,12 @@ class _OnboardingFinishScreenState extends State<OnboardingFinishScreen> {
         "uid": user.uid,
         "name": nameController.text.trim(),
         "surname": surnameController.text.trim(),
-        "phone_number": phoneController.text.trim(),
+        "phone_number": "$_phonePrefix ${phoneBodyController.text.trim()}",
         "birthday": birthdayController.text.trim(),
         "nationality": nationalityController.text.trim(),
         "email": user.email ?? "",
         "created_at": FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       Navigator.pushReplacement(
         context,
@@ -90,11 +92,56 @@ class _OnboardingFinishScreenState extends State<OnboardingFinishScreen> {
 
             _buildTextField("Ad", nameController),
             _buildTextField("Soyad", surnameController),
-            _buildTextField("Telefon", phoneController),
+
+            // Alan Kodu ve Telefon
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<String>(
+                    value: _phonePrefix,
+                    dropdownColor: Colors.grey[900],
+                    items: ["+90", "+1", "+44", "+49"].map((code) {
+                      return DropdownMenuItem(
+                        value: code,
+                        child: Text(code, style: TextStyle(color: Colors.white)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _phonePrefix = val!;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: "Alan Kodu",
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 5,
+                  child: _buildTextField("Telefon Numarası", phoneBodyController),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // Doğum Günü Seçimi
             GestureDetector(
               onTap: _selectDate,
-              child: _buildTextField("Doğum Günü", birthdayController, isReadOnly: true),
+              child: AbsorbPointer(
+                child: _buildTextField("Doğum Günü", birthdayController),
+              ),
             ),
+
             _buildTextField("Milliyet", nationalityController),
 
             const SizedBox(height: 20),
