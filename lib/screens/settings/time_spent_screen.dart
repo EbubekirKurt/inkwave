@@ -37,8 +37,10 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
   }
 
   void _initializeNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings =
+    InitializationSettings(android: initializationSettingsAndroid);
     await _notifications.initialize(initializationSettings);
   }
 
@@ -54,9 +56,6 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
       channelDescription: 'Belirli saatte bildirim gönderir',
       importance: Importance.max,
       priority: Priority.high,
-      playSound: true,
-      enableLights: true,
-      enableVibration: true,
     );
 
     await _notifications.zonedSchedule(
@@ -82,7 +81,8 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
       if (!doc.exists) return;
       final data = doc.data() as Map<String, dynamic>;
       final now = DateTime.now();
-      final todayKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final todayKey =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
       final timeLogs = Map<String, dynamic>.from(data['time_logs'] ?? {});
       int total = data['time_spent'] ?? 0;
@@ -95,7 +95,8 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
 
       for (int i = 0; i < 7; i++) {
         DateTime day = startOfWeek.add(Duration(days: i));
-        String key = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+        String key =
+            "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
         int minutes = ((timeLogs[key] ?? 0) / 60).floor();
         last7Days.add(minutes);
         weeklyMap[fixedDays[i]] = minutes;
@@ -145,11 +146,6 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
     super.dispose();
   }
 
-  String _weekdayName(int weekday) {
-    const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-    return days[(weekday - 1) % 7];
-  }
-
   Widget _buildInfoCard(String label, String value) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -165,7 +161,6 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
 
   Widget _buildGoalProgressBar({required int currentWeekMinutes, required int goalMinutes}) {
     final percentage = min(currentWeekMinutes / goalMinutes, 1.0);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -187,11 +182,18 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final maxY = ((_weeklyData.values.fold(0, max)) / 30).ceil() * 30.0;
+
     return Scaffold(
       backgroundColor: AppConstants.primaryColor,
       appBar: AppBar(
         backgroundColor: AppConstants.primaryColor,
-        title: const Text("Geçirilen Süre"),
+        title: const Text(
+          "Geçirilen Süre",
+          style: TextStyle(color: Colors.white),
+        ),
+        automaticallyImplyLeading: true,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -207,46 +209,72 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
             _buildInfoCard("Günlük Ortalama (7 gün)", "${_weeklyAverage.floor()} dk"),
             _buildInfoCard("🔥 Streak", "$_streak gün üst üste"),
             const SizedBox(height: 20),
-            const Text("Son 7 Günlük Kullanım", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            const Text("Son 7 Günlük Kullanım",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Expanded(
               child: BarChart(
                 BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  maxY: 180,
-                  borderData: FlBorderData(show: false),
+                  alignment: BarChartAlignment.spaceEvenly,
+                  maxY: maxY > 0 ? maxY : 60,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Colors.white10,
+                      strokeWidth: 1,
+                    ),
+                  ),
                   titlesData: FlTitlesData(
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, _) {
-                          final day = value.toInt();
-                          const fixedDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-                          if (day < 0 || day >= fixedDays.length) return const SizedBox.shrink();
-                          return Text(
-                            fixedDays[day],
-                            style: const TextStyle(color: Colors.white, fontSize: 10),
+                          const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(days[value.toInt()],
+                                style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           );
                         },
-                        reservedSize: 20,
                       ),
                     ),
                     leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, _) {
+                          if (value % 30 != 0) return const SizedBox.shrink();
+                          return Text(
+                            '${value.toInt()} dk',
+                            style: const TextStyle(color: Colors.white38, fontSize: 10),
+                          );
+                        },
+                        reservedSize: 40,
+                      ),
                     ),
-                    rightTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
+                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
+                  borderData: FlBorderData(show: false),
                   barGroups: List.generate(7, (index) {
-                    const fixedDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-                    double value = _weeklyData[fixedDays[index]]?.toDouble() ?? 0.0;
-                    return BarChartGroupData(x: index, barRods: [
-                      BarChartRodData(toY: value, width: 14, color: Colors.amber)
-                    ]);
+                    const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+                    final value = _weeklyData[days[index]]?.toDouble() ?? 0.0;
+                    return BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: value,
+                          width: 18,
+                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.amber,
+                          backDrawRodData: BackgroundBarChartRodData(
+                            show: true,
+                            toY: maxY,
+                            color: Colors.white12,
+                          ),
+                        ),
+                      ],
+                    );
                   }),
                 ),
               ),
