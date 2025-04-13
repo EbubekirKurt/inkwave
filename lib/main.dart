@@ -165,8 +165,8 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = const [
     HomeScreen(),
     TranslateScreen(),
-    SearchScreen(),
     SocialPage(),
+    LibraryScreen(),
     ProfileScreen(),
   ];
 
@@ -188,11 +188,12 @@ class _MainScreenState extends State<MainScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Ana Sayfa'),
           BottomNavigationBarItem(icon: Icon(Icons.translate), label: 'Çeviri'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Arama'),
-          BottomNavigationBarItem(icon: Icon(Icons.social_distance), label: 'Sosyal'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Sosyal'),
+          BottomNavigationBarItem(icon: Icon(Icons.library_books), label: 'Kitaplığım'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profilim'),
         ],
       ),
     );
   }
 }
+

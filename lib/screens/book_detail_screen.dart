@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
 import 'package:inkwave/screens/webview_screen.dart';
@@ -12,12 +14,24 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isDescriptionExpanded = false;
+  bool _isSaving = false;
+  bool _isBookInLibrary = false;
+
+  late Book book;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      book = ModalRoute.of(context)!.settings.arguments as Book;
+      _checkIfBookIsInLibrary();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final book = ModalRoute.of(context)?.settings.arguments as Book?;
-
-    if (book == null) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args == null || args is! Book) {
       return Scaffold(
         appBar: AppBar(
           title: const Text("Book Details"),
@@ -42,7 +56,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Kitap görseli
               Center(
                 child: SizedBox(
                   height: 250,
@@ -56,26 +69,38 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       : const Icon(Icons.book, size: 250, color: Colors.grey),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              // Başlık
-              Text(
-                book.title,
-                style: AppConstants.headlineStyle.copyWith(color: Colors.white),
-              ),
+              Text(book.title, style: AppConstants.headlineStyle.copyWith(color: Colors.white)),
               const SizedBox(height: 8),
               Text('Yazar: ${book.author}', style: AppConstants.subtitleStyle),
               const SizedBox(height: 8),
               Text('Puan: ${book.rating} / 5.0', style: const TextStyle(color: Colors.white)),
               const SizedBox(height: 20),
-
-              // Açıklama kısmı
               _buildExpandableDescription(book.description),
-
               const SizedBox(height: 30),
 
-              // Kitabı Oku Butonu
+              // 🔁 Ekle/Kaldır Butonu
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving ? null : () => _toggleBookInLibrary(),
+                  icon: Icon(_isBookInLibrary ? Icons.delete : Icons.favorite),
+                  label: Text(
+                    _isSaving
+                        ? "İşleniyor..."
+                        : (_isBookInLibrary ? "Kitaplığımdan Kaldır" : "Kitaplığıma Ekle"),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isBookInLibrary ? Colors.red : Colors.greenAccent.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 📖 Kitabı Oku Butonu
               if (book.previewLink != null && book.previewLink!.isNotEmpty)
                 Center(
                   child: ElevatedButton.icon(
@@ -113,10 +138,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _isDescriptionExpanded ? text : previewText,
-          style: const TextStyle(color: Colors.white),
-        ),
+        Text(_isDescriptionExpanded ? text : previewText, style: const TextStyle(color: Colors.white)),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: () {
@@ -126,10 +148,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           },
           child: Text(
             _isDescriptionExpanded ? "Daha az göster ▲" : "Devamını oku... ▼",
-            style: const TextStyle(
-              color: Colors.blueAccent,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -142,9 +161,75 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => WebViewScreen(url: bookReaderUrl),
-      ),
+      MaterialPageRoute(builder: (context) => WebViewScreen(url: bookReaderUrl)),
     );
+  }
+
+  Future<void> _checkIfBookIsInLibrary() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final snapshot = await FirebaseFirestore.instance.collection("users").doc(user.uid).get();
+    final data = snapshot.data();
+
+    if (data != null && data['my_books'] != null) {
+      final List books = data['my_books'];
+      final exists = books.any((b) => b['title'] == book.title);
+      setState(() {
+        _isBookInLibrary = exists;
+      });
+    }
+  }
+
+  Future<void> _toggleBookInLibrary() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final docRef = FirebaseFirestore.instance.collection("users").doc(user.uid);
+
+    try {
+      final docSnapshot = await docRef.get();
+      final data = docSnapshot.data();
+      List<dynamic> books = data?['my_books'] ?? [];
+
+      if (_isBookInLibrary) {
+        // 🔴 Kitabı manuel filtreleyerek kaldır
+        books.removeWhere((b) =>
+        b['title'] == book.title &&
+            b['author'] == book.author); // gerekiyorsa imageUrl vb. ile güçlendir
+
+        await docRef.set({'my_books': books}, SetOptions(merge: true));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Kitap kitaplığınızdan kaldırıldı.")),
+        );
+      } else {
+        // 🟢 Kitabı ekle
+        books.add(book.toMap());
+
+        await docRef.set({'my_books': books}, SetOptions(merge: true));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Kitap kitaplığınıza eklendi.")),
+        );
+      }
+
+      setState(() {
+        _isBookInLibrary = !_isBookInLibrary;
+      });
+    } catch (e) {
+      debugPrint("Firestore hata: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("İşlem sırasında hata oluştu: $e")),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
 import 'package:inkwave/services/books_api.dart';
 import 'package:inkwave/widgets/newest_books_widget.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Book> books = [];
   bool _isLoading = true;
   bool _hasError = false;
-  String _interestKeyword = "Popular"; // Default keyword
+  String _interestKeyword = "Popular";
 
   @override
   void initState() {
@@ -26,14 +26,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserInterestAndBooks() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc =
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data() != null && doc.data()!.containsKey("interest")) {
           final interestData = doc["interest"];
           if (interestData is List && interestData.isNotEmpty) {
-            // İlk ilgi alanını kullan
             final firstInterest = interestData.first;
             if (firstInterest is String && firstInterest.isNotEmpty) {
               _interestKeyword = firstInterest;
@@ -42,9 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     } catch (e) {
-      print("İlgi alanı alınamadı: $e");
+      debugPrint("İlgi alanı alınamadı: $e");
     } finally {
-      _fetchBooks();
+      await _fetchBooks();
     }
   }
 
@@ -61,6 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _refreshPage() async {
+    await _loadUserInterestAndBooks();
   }
 
   @override
@@ -97,72 +106,83 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppConstants.padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+      body: RefreshIndicator(
+        onRefresh: _refreshPage,
+        color: Colors.white,
+        backgroundColor: AppConstants.primaryColor,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(AppConstants.padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (_hasError)
-              const Center(
-                child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
-              )
-            else
-              NewestBooksWidget(books: books),
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (_hasError)
+                const Center(
+                  child: Text("Kitaplar yüklenirken hata oluştu!",
+                      style: TextStyle(color: Colors.white)),
+                )
+              else
+                NewestBooksWidget(books: books),
 
-            const SizedBox(height: 30),
-            Text("$_interestKeyword Kitaplar", style: AppConstants.headlineStyle),
-            const SizedBox(height: 10),
+              const SizedBox(height: 30),
+              Text("$_interestKeyword Kitaplar", style: AppConstants.headlineStyle),
+              const SizedBox(height: 10),
 
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (_hasError)
-              const Center(
-                child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: books.length,
-                itemBuilder: (context, index) {
-                  final book = books[index];
-                  return Card(
-                    color: Colors.white10,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SizedBox(
-                          width: 50,
-                          height: 70,
-                          child: book.imageUrl.isNotEmpty
-                              ? Image.network(book.imageUrl, fit: BoxFit.cover)
-                              : const Icon(Icons.broken_image, color: Colors.grey),
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (_hasError)
+                const Center(
+                  child: Text("Kitaplar yüklenirken hata oluştu!",
+                      style: TextStyle(color: Colors.white)),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: books.length,
+                  itemBuilder: (context, index) {
+                    final book = books[index];
+                    return Card(
+                      color: Colors.white10,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      child: ListTile(
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: SizedBox(
+                            width: 50,
+                            height: 70,
+                            child: book.imageUrl.isNotEmpty
+                                ? Image.network(book.imageUrl, fit: BoxFit.cover)
+                                : const Icon(Icons.broken_image, color: Colors.grey),
+                          ),
                         ),
+                        title: Text(book.title,
+                            style: const TextStyle(color: Colors.white)),
+                        subtitle: Text(
+                          '⭐ ${book.rating.toStringAsFixed(1)}',
+                          style: AppConstants.subtitleStyle,
+                        ),
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/bookDetail',
+                            arguments: book,
+                          );
+                        },
                       ),
-                      title: Text(book.title, style: const TextStyle(color: Colors.white)),
-                      subtitle: Text(
-                        '⭐ ${book.rating.toStringAsFixed(1)}',
-                        style: AppConstants.subtitleStyle,
-                      ),
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/bookDetail',
-                          arguments: book,
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-          ],
+                    );
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
