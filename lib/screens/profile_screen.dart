@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/login.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:inkwave/widgets/settings_drawer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -17,11 +19,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   User? _user;
-  bool _isSaving = false;
-  bool _isUserInFirestore = false;
 
-  // Telefon numarası için
-  String _selectedCountryCode = "+90"; // Varsayılan olarak Türkiye
+  String _selectedCountryCode = "+90";
   final List<String> _countryCodes = [
     "+1", "+7", "+20", "+27", "+30", "+31", "+32", "+33", "+34", "+36", "+39",
     "+40", "+41", "+43", "+44", "+45", "+46", "+47", "+48", "+49", "+51", "+52",
@@ -35,7 +34,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     "+266", "+267", "+268", "+269", "+290", "+291", "+297", "+298", "+299",
   ];
 
-  // Kullanıcı bilgileri için controller'lar
   final TextEditingController nameController = TextEditingController();
   final TextEditingController surnameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -58,10 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       DocumentSnapshot userDoc = await _firestore.collection('users').doc(_user!.uid).get();
 
       if (userDoc.exists) {
-        setState(() {
-          _isUserInFirestore = true;
-        });
-
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
 
         nameController.text = data['name'] ?? "";
@@ -71,7 +65,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         totalBooksController.text = data['total_book_count']?.toString() ?? "0";
         leaderboardScoreController.text = data['leaderboard_score']?.toString() ?? "0";
 
-        // Telefon numarası ve ülke kodunu ayır
         String fullPhoneNumber = data['phone_number'] ?? "";
         for (String code in _countryCodes) {
           if (fullPhoneNumber.startsWith(code)) {
@@ -89,10 +82,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveUserData() async {
     if (_user == null) return;
 
-    setState(() {
-      _isSaving = true;
-    });
-
     try {
       await _firestore.collection('users').doc(_user!.uid).set({
         "uid": _user!.uid,
@@ -108,21 +97,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         "user_type_id": "/user_types/96LYlKLni2rMImmRLh1k",
       }, SetOptions(merge: true));
 
-      setState(() {
-        _isSaving = false;
-        _isUserInFirestore = true;
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully!")),
+        const SnackBar(content: Text("Profil başarıyla güncellendi!")),
       );
     } catch (e) {
-      setState(() {
-        _isSaving = false;
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating profile: $e")),
+        SnackBar(content: Text("Hata: $e")),
       );
     }
   }
@@ -131,34 +111,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn().disconnect();
     await GoogleSignIn().signOut();
-
-    await SharedPreferences.getInstance().then((prefs) {
-      prefs.clear();
-    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
 
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
           (route) => false,
     );
-  }
-
-
-
-  void _selectDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        birthdayController.text =
-        "${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}";
-      });
-    }
   }
 
   @override
@@ -171,9 +131,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text("Profilim", style: TextStyle(color: Colors.white)),
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white),
-              onPressed: _signOut,
-              tooltip: "Çıkış Yap",
+              icon: const Icon(Icons.settings, color: Colors.white),
+              onPressed: () => SettingsDrawer.show(context, _signOut),
+              tooltip: "Ayarlar",
             ),
           ],
         ),
@@ -188,11 +148,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              _buildEditableField("Name", nameController),
-              _buildEditableField("Surname", surnameController),
-              _buildProfileInfo("Email", _user?.email ?? "N/A"),
+              _buildEditableField("Ad", nameController),
+              _buildEditableField("Soyad", surnameController),
+              _buildProfileInfo("Email", _user?.email ?? "Yok"),
 
-              const Text("Phone", style: TextStyle(color: Colors.grey, fontSize: 16)),
+              const Text("Telefon", style: TextStyle(color: Colors.grey, fontSize: 16)),
               Row(
                 children: [
                   DropdownButton<String>(
@@ -205,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     items: _countryCodes.map((String code) {
                       return DropdownMenuItem<String>(
                         value: code,
-                        child: Text(code, style: const TextStyle(color: Colors.white)),
+                        child: Text(code, style: const TextStyle(color: Colors.black)),
                       );
                     }).toList(),
                   ),
@@ -214,10 +174,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
 
+              _buildEditableField("Doğum Tarihi", birthdayController),
+              _buildEditableField("Uyruk", nationalityController),
+              _buildEditableField("Toplam Okunan Kitap", totalBooksController, isNumeric: true),
+
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _saveUserData,
-                child: const Text("Save"),
+                child: const Text("Kaydet"),
               ),
             ],
           ),
@@ -225,28 +189,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-}
 
-Widget _buildEditableField(String label, TextEditingController controller, {bool isNumeric = false, bool isReadOnly = false}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: TextField(
-      controller: controller,
-      keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
-      readOnly: isReadOnly,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+  Widget _buildEditableField(String label, TextEditingController controller, {bool isNumeric = false, bool isReadOnly = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+        readOnly: isReadOnly,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.grey),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.1),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-Widget _buildProfileInfo(String label, String value) {
-  return _buildEditableField(label, TextEditingController(text: value), isReadOnly: true);
+  Widget _buildProfileInfo(String label, String value) {
+    return _buildEditableField(label, TextEditingController(text: value), isReadOnly: true);
+  }
 }
-

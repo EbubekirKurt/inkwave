@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/home_screen.dart';
 import 'package:inkwave/screens/library_screen.dart';
-import 'package:inkwave/screens/profile_screen.dart';
+import 'package:inkwave/screens/profile/profile_screen.dart';
 import 'package:inkwave/screens/search_screen.dart';
 import 'package:inkwave/screens/book_detail_screen.dart';
 import 'package:inkwave/screens/translate_screen.dart';

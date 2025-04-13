@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     NewestBooksWidget(books: books),
 
                   const SizedBox(height: 20),
-                  Text("Newest Books", style: AppConstants.headlineStyle),
+                  const Text("Newest Books", style: AppConstants.headlineStyle),
                   const SizedBox(height: 10),
 
                   // **Dikey Kitap Listesi**

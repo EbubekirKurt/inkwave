@@ -55,7 +55,7 @@ class LibraryScreen extends StatelessWidget {
                 child: myLibrary.isEmpty
                     ? Center(
                   child: Text(
-                    "Kitaplığınız boş. Kitap satın alın!",
+                    "Implementasyonu daha sonra yapılacak.\n\nTODO: \n1)",
                     style: AppConstants.subtitleStyle,
                   ),
                 )
