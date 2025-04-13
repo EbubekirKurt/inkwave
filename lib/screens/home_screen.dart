@@ -40,83 +40,104 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          const SliverAppBar(
-            pinned: true,
-            expandedHeight: 100.0,
-            backgroundColor: AppConstants.primaryColor,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text("Inkwave", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              centerTitle: true,
+      backgroundColor: AppConstants.primaryColor,
+      appBar: AppBar(
+        backgroundColor: AppConstants.primaryColor,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 60,
+        title: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Text(
+              "Inkwave",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
             ),
-          ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Opacity( // Solda boşluk dengesi
+                  opacity: 0,
+                  child: Icon(Icons.search),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/search');
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppConstants.padding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
 
-          // **Kitap İçeriklerini Gösteren Bölüm**
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppConstants.padding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (_hasError)
+              const Center(
+                child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
+              )
+            else
+              NewestBooksWidget(books: books),
 
-                  // **En Yeni Kitaplar (Yatay Kaydırma)**
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (_hasError)
-                    const Center(
-                      child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
-                    )
-                  else
-                    NewestBooksWidget(books: books),
+            const SizedBox(height: 30),
+            const Text("Newest Books", style: AppConstants.headlineStyle),
+            const SizedBox(height: 10),
 
-                  const SizedBox(height: 20),
-                  Text("Newest Books", style: AppConstants.headlineStyle),
-                  const SizedBox(height: 10),
-
-                  // **Dikey Kitap Listesi**
-                  if (_isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (_hasError)
-                    const Center(
-                      child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
-                    )
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: books.length,
-                      itemBuilder: (context, index) {
-                        final book = books[index];
-                        return ListTile(
-                          leading: SizedBox(
-                            width: 50,
-                            height: 50,
-                            child: book.imageUrl.isNotEmpty
-                                ? Image.network(book.imageUrl, fit: BoxFit.cover)
-                                : const Icon(Icons.broken_image, color: Colors.grey),
-                          ),
-                          title: Text(book.title, style: const TextStyle(color: Colors.white)),
-                          subtitle: Text(
-                            '⭐ ${book.rating.toStringAsFixed(1)}',
-                            style: AppConstants.subtitleStyle,
-                          ),
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/bookDetail',
-                              arguments: book,
-                            );
-                          },
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (_hasError)
+              const Center(
+                child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: books.length,
+                itemBuilder: (context, index) {
+                  final book = books[index];
+                  return Card(
+                    color: Colors.white10,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 50,
+                          height: 70,
+                          child: book.imageUrl.isNotEmpty
+                              ? Image.network(book.imageUrl, fit: BoxFit.cover)
+                              : const Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      ),
+                      title: Text(book.title, style: const TextStyle(color: Colors.white)),
+                      subtitle: Text(
+                        '⭐ ${book.rating.toStringAsFixed(1)}',
+                        style: AppConstants.subtitleStyle,
+                      ),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/bookDetail',
+                          arguments: book,
                         );
                       },
                     ),
-                ],
+                  );
+                },
               ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

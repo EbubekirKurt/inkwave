@@ -40,6 +40,10 @@ flutter:
     - assets/app_images/book.png
     - assets/app_images/image.png
     - assets/rivs/teddy.riv
+    - assets/onboarding/
+    - assets/onboarding/welcome.png
+    - assets/onboarding/translate.png
+    - assets/onboarding/library.png
 
 flutter_icons:
   android: true

@@ -3,8 +3,15 @@ import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
 import 'package:inkwave/screens/webview_screen.dart';
 
-class BookDetailScreen extends StatelessWidget {
+class BookDetailScreen extends StatefulWidget {
   const BookDetailScreen({Key? key}) : super(key: key);
+
+  @override
+  State<BookDetailScreen> createState() => _BookDetailScreenState();
+}
+
+class _BookDetailScreenState extends State<BookDetailScreen> {
+  bool _isDescriptionExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +31,9 @@ class BookDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(book.title),
+        title: Text(book.title, style: const TextStyle(color: Colors.white)),
         backgroundColor: AppConstants.primaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       backgroundColor: AppConstants.primaryColor,
       body: Padding(
@@ -40,65 +42,97 @@ class BookDetailScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Kitap görseli
               Center(
                 child: SizedBox(
                   height: 250,
                   child: book.imageUrl.isNotEmpty
                       ? Image.network(
                     book.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.broken_image, size: 250, color: Colors.grey);
-                    },
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.broken_image, size: 250, color: Colors.grey),
                   )
                       : const Icon(Icons.book, size: 250, color: Colors.grey),
                 ),
               ),
+
               const SizedBox(height: 20),
-              Text(book.title, style: AppConstants.headlineStyle),
+
+              // Başlık
+              Text(
+                book.title,
+                style: AppConstants.headlineStyle.copyWith(color: Colors.white),
+              ),
               const SizedBox(height: 8),
               Text('Yazar: ${book.author}', style: AppConstants.subtitleStyle),
               const SizedBox(height: 8),
               Text('Puan: ${book.rating} / 5.0', style: const TextStyle(color: Colors.white)),
               const SizedBox(height: 20),
-              Text(book.description, style: const TextStyle(color: Colors.white)),
+
+              // Açıklama kısmı
+              _buildExpandableDescription(book.description),
+
               const SizedBox(height: 30),
 
-              // Kitabı Önizleme Butonu
+              // Kitabı Oku Butonu
               if (book.previewLink != null && book.previewLink!.isNotEmpty)
                 Center(
                   child: ElevatedButton.icon(
                     onPressed: () => _openBookPreview(context, book.previewLink!),
-                    icon: const Icon(Icons.book_online),
+                    icon: const Icon(Icons.menu_book_rounded),
                     label: const Text("Kitabı Oku"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      textStyle: const TextStyle(fontSize: 18),
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppConstants.primaryColor,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
                     ),
                   ),
                 ),
-
-              const SizedBox(height: 20),
-
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text("Geri Dön"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppConstants.accentColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    textStyle: const TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildExpandableDescription(String text) {
+    const int previewMaxLength = 250;
+
+    if (text.length <= previewMaxLength) {
+      return Text(text, style: const TextStyle(color: Colors.white));
+    }
+
+    String previewText = text.substring(0, previewMaxLength) + "...";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _isDescriptionExpanded ? text : previewText,
+          style: const TextStyle(color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isDescriptionExpanded = !_isDescriptionExpanded;
+            });
+          },
+          child: Text(
+            _isDescriptionExpanded ? "Daha az göster ▲" : "Devamını oku... ▼",
+            style: const TextStyle(
+              color: Colors.blueAccent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -113,5 +147,4 @@ class BookDetailScreen extends StatelessWidget {
       ),
     );
   }
-
 }

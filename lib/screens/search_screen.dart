@@ -32,7 +32,6 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  /// **📌 Kullanıcı her karakter yazdığında arama yapılacak (Debounce ile gecikmeli)**
   void _onSearchChanged() {
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
@@ -40,7 +39,6 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  /// **📌 Kitap Arama Fonksiyonu**
   void _searchBooks() async {
     if (_searchController.text.isEmpty) {
       setState(() {
@@ -67,7 +65,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  /// **📌 Arama Kutusunu Temizleme**
   void _clearSearch() {
     _searchController.clear();
     setState(() {
@@ -80,13 +77,30 @@ class _SearchScreenState extends State<SearchScreen> {
     return SafeArea(
       child: Scaffold(
         backgroundColor: AppConstants.primaryColor,
+        appBar: AppBar(
+          backgroundColor: AppConstants.primaryColor,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () {
+                Navigator.pop(context); // 👈 Geri dön
+              },
+            ),
+          ],
+          title: const Text(
+            "Kitap Ara",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          centerTitle: true,
+        ),
         body: Padding(
           padding: const EdgeInsets.all(AppConstants.padding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Kitap Ara", style: AppConstants.headlineStyle),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white10,
@@ -103,7 +117,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
                       icon: const Icon(Icons.clear, color: Colors.white54),
-                      onPressed: _clearSearch, // **Arama temizleme fonksiyonu**
+                      onPressed: _clearSearch,
                     )
                         : null,
                   ),
@@ -111,14 +125,16 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               const SizedBox(height: 20),
 
-              // **Arama Sonuçları**
+              /// 📌 Arama Sonuçları
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _searchResults.isEmpty
                     ? const Center(
-                  child: Text("Arama sonuçları burada listelenecek...",
-                      style: TextStyle(color: Colors.white54)),
+                  child: Text(
+                    "Arama sonuçları burada listelenecek...",
+                    style: TextStyle(color: Colors.white54),
+                  ),
                 )
                     : ListView.builder(
                   itemCount: _searchResults.length,
