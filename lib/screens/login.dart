@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' as flutter;
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,7 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void _togglePasswordVisibility() {
     setState(() {
       isPasswordVisible = !isPasswordVisible;
-      // Şifre göster/gizle butonuna basıldığında animasyon değişebilir
       _controller = SimpleAnimation(isPasswordVisible ? "hands_down" : "hands_up");
     });
   }
@@ -62,10 +60,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       User? user = userCredential.user;
       if (user != null) {
-        // Firestore üzerinde kullanıcı kaydı yoksa ekle, varsa "last_login" güncelle
         await _checkAndSaveUser(user);
 
-        // Giriş başarılı olunca HomeScreen'e yönlendir
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -243,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.1),
+        fillColor: const Color.fromRGBO(255, 255, 255, 0.1),
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
         border: OutlineInputBorder(
