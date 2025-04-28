@@ -37,6 +37,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _isFirstTime = true;
   bool _isProfileCompleted = false;
   bool _isInterestSelected = false;
+  bool _isOnboarded = false;  // onboarded durumu kontrol edilecek
   DateTime? _sessionStart;
 
   @override
@@ -75,6 +76,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (data['interest'] != null && (data['interest'] as List).isNotEmpty) {
       _isInterestSelected = true;
       await prefs.setBool("interest_selected", true);
+    }
+
+    if (data['onboarded'] == true) {
+      _isOnboarded = true;  // onboarded durumu kontrolü
     }
 
     setState(() => _isLoading = false);
@@ -136,7 +141,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return const LoginScreen();
           }
 
-          if (_isFirstTime) return const OnboardingScreen();
+          if (!_isOnboarded) return const OnboardingFinishScreen();
           if (!_isInterestSelected) return const OnboardingInterestsScreen();
           if (!_isProfileCompleted) return const OnboardingFinishScreen();
           return const MainScreen();
@@ -184,7 +189,6 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onItemTapped(int index) {
     setState(() {
-      // Eğer aynı sekmeye tekrar basıldıysa key'i değiştir
       if (_selectedIndex == index) {
         if (index == 0) _homeKeyCounter++;
         if (index == 3) _libraryKeyCounter++;
@@ -216,4 +220,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

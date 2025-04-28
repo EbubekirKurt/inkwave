@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'onboarding_data.dart';
 import 'onboarding_interests.dart';
 
@@ -12,6 +14,22 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   int currentIndex = 0;
   final PageController _controller = PageController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Firestore'da kullanıcıyı onboarded olarak işaretleme fonksiyonu
+  Future<void> _markOnboarded() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      try {
+        await _firestore.collection('users').doc(user.uid).set({
+          "onboarded": true,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        print("Error updating user data: $e");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           TextButton(
             onPressed: () {
+              _markOnboarded();  // Atla butonuna basıldığında kullanıcıyı onboarded olarak işaretle
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const OnboardingInterestsScreen()),
@@ -63,15 +82,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ElevatedButton(
             onPressed: () {
               if (currentIndex == onboardingData.length - 1) {
+                _markOnboarded();  // Başla butonuna basıldığında kullanıcıyı onboarded olarak işaretle
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const OnboardingInterestsScreen()),
                 );
               } else {
                 _controller.nextPage(
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.ease,
-                );
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.ease);
               }
             },
             style: ElevatedButton.styleFrom(

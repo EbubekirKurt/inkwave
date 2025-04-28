@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("$keyword Kitaplar", style: AppConstants.headlineStyle),
+                      Text("$keyword ile ilgili kitaplar", style: AppConstants.headlineStyle),
                       const SizedBox(height: 10),
                       if (_isLoading)
                         const Center(child: CircularProgressIndicator())
@@ -150,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       else
                       // Yatay kitaplar için ListView.builder'ı yatay yapıyoruz
                         SizedBox(
-                          height: 200,  // Yatay liste için yüksekliği ayarlayalım
+                          height: 230,  // Yatay liste için yüksekliği biraz daha artırdık
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,  // Yatay kaydırma
                             itemCount: booksByInterest[keyword]?.length ?? 0,
@@ -162,13 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10)),
                                 child: SizedBox(
-                                  width: 130,  // Her bir kitap için genişlik
+                                  width: 140,  // Her bir kitap için genişlik
                                   child: Column(
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(6),
                                         child: SizedBox(
-                                          width: 120,
+                                          width: 130,
                                           height: 170,
                                           child: book.imageUrl.isNotEmpty
                                               ? Image.network(book.imageUrl, fit: BoxFit.cover)
@@ -176,11 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      // Başlık metnini kısaltma
+                                      // Başlık metnini kısaltma ve iki satıra sığdırma
                                       Text(
-                                        book.title.length > 15 ? book.title.substring(0, 15) + '...' : book.title,
+                                        book.title,
                                         style: const TextStyle(color: Colors.white),
-                                        maxLines: 1,
+                                        maxLines: 1,  // Başlık iki satıra kadar olacak
                                         overflow: TextOverflow.ellipsis,  // Taşma durumunda '...' ekleyelim
                                       ),
                                       const SizedBox(height: 4),
