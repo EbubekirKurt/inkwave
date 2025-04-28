@@ -14,10 +14,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Book> books = [];
+  Map<String, List<Book>> booksByInterest = {};  // Her bir ilgi alanı için kitaplar
   bool _isLoading = true;
   bool _hasError = false;
-  String _interestKeyword = "Popular";
+  List<String> _interestKeywords = [];
 
   @override
   void initState() {
@@ -39,10 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (doc.exists && doc.data() != null && doc.data()!.containsKey("interest")) {
           final interestData = doc["interest"];
           if (interestData is List && interestData.isNotEmpty) {
-            final firstInterest = interestData.first;
-            if (firstInterest is String && firstInterest.isNotEmpty) {
-              _interestKeyword = firstInterest;
-            }
+            _interestKeywords = List<String>.from(interestData);
           }
         }
       }
@@ -55,9 +52,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchBooks() async {
     try {
-      final fetchedBooks = await BooksApi.searchBooks(_interestKeyword);
+      Map<String, List<Book>> allBooks = {};
+
+      for (String interestKeyword in _interestKeywords) {
+        final fetchedBooks = await BooksApi.searchBooks(interestKeyword);
+        allBooks[interestKeyword] = fetchedBooks;  // Her ilgi alanı için kitaplar
+      }
+
       setState(() {
-        books = fetchedBooks;
+        booksByInterest = allBooks;  // Map'i güncelliyoruz
         _isLoading = false;
       });
     } catch (e) {
@@ -126,61 +129,75 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(color: Colors.white)),
                 )
               else
-                NewestBooksWidget(books: books),
+                NewestBooksWidget(books: booksByInterest.values.expand((x) => x).toList()),
 
               const SizedBox(height: 30),
-              Text("$_interestKeyword Kitaplar", style: AppConstants.headlineStyle),
-              const SizedBox(height: 10),
-
-              if (_isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (_hasError)
-                const Center(
-                  child: Text("Kitaplar yüklenirken hata oluştu!",
-                      style: TextStyle(color: Colors.white)),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: books.length,
-                  itemBuilder: (context, index) {
-                    final book = books[index];
-                    return Card(
-                      color: Colors.white10,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      child: ListTile(
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: SizedBox(
-                            width: 50,
-                            height: 70,
-                            child: book.imageUrl.isNotEmpty
-                                ? Image.network(book.imageUrl, fit: BoxFit.cover)
-                                : const Icon(Icons.broken_image, color: Colors.grey),
+              // Her ilgi alanını ayrı bir başlık olarak göstermek
+              if (_interestKeywords.isNotEmpty)
+                for (var keyword in _interestKeywords)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("$keyword Kitaplar", style: AppConstants.headlineStyle),
+                      const SizedBox(height: 10),
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_hasError)
+                        const Center(
+                          child: Text("Kitaplar yüklenirken hata oluştu!",
+                              style: TextStyle(color: Colors.white)),
+                        )
+                      else
+                      // Yatay kitaplar için ListView.builder'ı yatay yapıyoruz
+                        SizedBox(
+                          height: 200,  // Yatay liste için yüksekliği ayarlayalım
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,  // Yatay kaydırma
+                            itemCount: booksByInterest[keyword]?.length ?? 0,
+                            itemBuilder: (context, index) {
+                              final book = booksByInterest[keyword]![index];
+                              return Card(
+                                color: Colors.white10,
+                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                child: SizedBox(
+                                  width: 130,  // Her bir kitap için genişlik
+                                  child: Column(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: SizedBox(
+                                          width: 120,
+                                          height: 170,
+                                          child: book.imageUrl.isNotEmpty
+                                              ? Image.network(book.imageUrl, fit: BoxFit.cover)
+                                              : const Icon(Icons.broken_image, color: Colors.grey),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Başlık metnini kısaltma
+                                      Text(
+                                        book.title.length > 15 ? book.title.substring(0, 15) + '...' : book.title,
+                                        style: const TextStyle(color: Colors.white),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,  // Taşma durumunda '...' ekleyelim
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '⭐ ${book.rating.toStringAsFixed(1)}',
+                                        style: AppConstants.subtitleStyle,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                        title: Text(book.title,
-                            style: const TextStyle(color: Colors.white)),
-                        subtitle: Text(
-                          '⭐ ${book.rating.toStringAsFixed(1)}',
-                          style: AppConstants.subtitleStyle,
-                        ),
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/bookDetail',
-                            arguments: book,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
             ],
           ),
         ),
