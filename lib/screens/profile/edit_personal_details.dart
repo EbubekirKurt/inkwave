@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/login.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class EditPersonalDetailsScreen extends StatefulWidget {
   const EditPersonalDetailsScreen({Key? key}) : super(key: key);
@@ -61,12 +62,19 @@ class _EditPersonalDetailsScreenState extends State<EditPersonalDetailsScreen> {
         }
       }
     } catch (e) {
-      print("Kullanıcı verisi alınamadı: $e");
+      debugPrint("Kullanıcı verisi alınamadı: $e");
+      _showError("Kullanıcı bilgileri alınamadı.");
     }
   }
 
   Future<void> _saveUserData() async {
     if (_user == null) return;
+
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showError("İnternet bağlantısı yok. Lütfen bağlantınızı kontrol edin.");
+      return;
+    }
 
     try {
       await _firestore.collection('users').doc(_user!.uid).set({
@@ -86,38 +94,53 @@ class _EditPersonalDetailsScreenState extends State<EditPersonalDetailsScreen> {
         const SnackBar(content: Text("Profil güncellendi")),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Hata oluştu: $e")),
-      );
+      debugPrint("Veri kaydederken hata: $e");
+      _showError("Bilgiler kaydedilemedi. Lütfen tekrar deneyin.");
     }
   }
 
   Future<void> _signOut() async {
-    await FirebaseAuth.instance.signOut();
-    await GoogleSignIn().disconnect();
-    await GoogleSignIn().signOut();
+    try {
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().disconnect();
+      await GoogleSignIn().signOut();
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-    );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+      );
+    } catch (e) {
+      debugPrint("Çıkış hatası: $e");
+      _showError("Çıkış yapılamadı.");
+    }
   }
 
   void _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
+    try {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime(2000),
+        firstDate: DateTime(1900),
+        lastDate: DateTime.now(),
+      );
 
-    if (picked != null) {
-      birthdayController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      if (picked != null) {
+        birthdayController.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+      }
+    } catch (e) {
+      debugPrint("Tarih seçme hatası: $e");
+      _showError("Tarih seçilemedi.");
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -169,7 +192,6 @@ class _EditPersonalDetailsScreenState extends State<EditPersonalDetailsScreen> {
               child: AbsorbPointer(child: _buildField("Doğum Tarihi", birthdayController)),
             ),
             _buildField("Uyruk", nationalityController),
-            _buildField("Toplam Okunan Kitap", totalBooksController, isNumeric: true),
 
             const SizedBox(height: 20),
             ElevatedButton(

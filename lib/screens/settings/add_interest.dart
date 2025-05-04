@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:inkwave/constants.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class AddInterestsScreen extends StatefulWidget {
   const AddInterestsScreen({Key? key}) : super(key: key);
@@ -38,19 +39,18 @@ class _AddInterestsScreenState extends State<AddInterestsScreen> {
           final data = doc["interest"];
           if (data is List) {
             _selectedInterests = List<String>.from(data);
-            // Eğer "Diğer" harici bir şey varsa kullanıcı yazmış olabilir
-            final others = _selectedInterests.where((e) =>
-            !_allInterests.contains(e)).toList();
+            final others = _selectedInterests.where((e) => !_allInterests.contains(e)).toList();
             if (others.isNotEmpty) {
               _selectedInterests.add("Diğer");
               _otherController.text = others.first;
-              _selectedInterests.remove(others.first); // metin olarak yazılmış olanı kaldır
+              _selectedInterests.remove(others.first);
             }
           }
         }
       }
     } catch (e) {
-      print("Hata: $e");
+      debugPrint("İlgi alanları yüklenemedi: $e");
+      _showError("İlgi alanları yüklenemedi.");
     }
 
     setState(() {
@@ -61,6 +61,12 @@ class _AddInterestsScreenState extends State<AddInterestsScreen> {
   Future<void> _saveInterests() async {
     User? user = _auth.currentUser;
     if (user == null) return;
+
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showError("İnternet bağlantısı yok. Lütfen tekrar deneyin.");
+      return;
+    }
 
     List<String> toSave = List.from(_selectedInterests);
     if (toSave.contains("Diğer")) {
@@ -79,8 +85,15 @@ class _AddInterestsScreenState extends State<AddInterestsScreen> {
         const SnackBar(content: Text("İlgi alanların güncellendi.")),
       );
     } catch (e) {
-      print("Kaydetme hatası: $e");
+      debugPrint("Kaydetme hatası: $e");
+      _showError("Kaydederken bir hata oluştu.");
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -92,14 +105,10 @@ class _AddInterestsScreenState extends State<AddInterestsScreen> {
     return Scaffold(
       backgroundColor: AppConstants.primaryColor,
       appBar: AppBar(
-        title: const Text(
-          "İlgi Alanlarını Güncelle",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text("İlgi Alanlarını Güncelle", style: TextStyle(color: Colors.white)),
         backgroundColor: AppConstants.primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-
       body: Column(
         children: [
           Expanded(
