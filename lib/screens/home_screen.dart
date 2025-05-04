@@ -14,7 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Map<String, List<Book>> booksByInterest = {};  // Her bir ilgi alanı için kitaplar
+  Map<String, List<Book>> booksByInterest = {};
   bool _isLoading = true;
   bool _hasError = false;
   List<String> _interestKeywords = [];
@@ -53,14 +53,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchBooks() async {
     try {
       Map<String, List<Book>> allBooks = {};
-
       for (String interestKeyword in _interestKeywords) {
         final fetchedBooks = await BooksApi.searchBooks(interestKeyword);
-        allBooks[interestKeyword] = fetchedBooks;  // Her ilgi alanı için kitaplar
+        allBooks[interestKeyword] = fetchedBooks;
       }
 
       setState(() {
-        booksByInterest = allBooks;  // Map'i güncelliyoruz
+        booksByInterest = allBooks;
         _isLoading = false;
       });
     } catch (e) {
@@ -94,10 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Opacity(
-                  opacity: 0,
-                  child: Icon(Icons.search),
-                ),
+                const Opacity(opacity: 0, child: Icon(Icons.search)),
                 IconButton(
                   icon: const Icon(Icons.search, color: Colors.white),
                   onPressed: () {
@@ -120,7 +116,6 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-
               if (_isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (_hasError)
@@ -132,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 NewestBooksWidget(books: booksByInterest.values.expand((x) => x).toList()),
 
               const SizedBox(height: 30),
-              // Her ilgi alanını ayrı bir başlık olarak göstermek
+
               if (_interestKeywords.isNotEmpty)
                 for (var keyword in _interestKeywords)
                   Column(
@@ -144,15 +139,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Center(child: CircularProgressIndicator())
                       else if (_hasError)
                         const Center(
-                          child: Text("Kitaplar yüklenirken hata oluştu!",
+                          child: Text("Kitaplar yüklenirken hata oluştuu!",
                               style: TextStyle(color: Colors.white)),
                         )
                       else
-                      // Yatay kitaplar için ListView.builder'ı yatay yapıyoruz
                         SizedBox(
-                          height: 230,  // Yatay liste için yüksekliği biraz daha artırdık
+                          height: 230,
                           child: ListView.builder(
-                            scrollDirection: Axis.horizontal,  // Yatay kaydırma
+                            scrollDirection: Axis.horizontal,
                             itemCount: booksByInterest[keyword]?.length ?? 0,
                             itemBuilder: (context, index) {
                               final book = booksByInterest[keyword]![index];
@@ -160,28 +154,35 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Colors.white10,
                                 margin: const EdgeInsets.symmetric(horizontal: 8),
                                 shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10)),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                                 child: SizedBox(
-                                  width: 140,  // Her bir kitap için genişlik
+                                  width: 150,
+                                  height: 220, // Kartın yüksekliğini sabit tut
                                   child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(6),
                                         child: SizedBox(
                                           width: 130,
-                                          height: 170,
+                                          height: 150,
                                           child: book.imageUrl.isNotEmpty
                                               ? Image.network(book.imageUrl, fit: BoxFit.cover)
                                               : const Icon(Icons.broken_image, color: Colors.grey),
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      // Başlık metnini kısaltma ve iki satıra sığdırma
-                                      Text(
-                                        book.title,
-                                        style: const TextStyle(color: Colors.white),
-                                        maxLines: 1,  // Başlık iki satıra kadar olacak
-                                        overflow: TextOverflow.ellipsis,  // Taşma durumunda '...' ekleyelim
+                                      const SizedBox(height: 6),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                                        child: Text(
+                                          book.title,
+                                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          softWrap: false,
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
