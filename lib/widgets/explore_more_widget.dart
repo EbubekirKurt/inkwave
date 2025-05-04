@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:inkwave/models/book.dart';
 import 'package:inkwave/constants.dart';
 
-class NewestBooksWidget extends StatelessWidget {
+class ExploreMoreWidget extends StatelessWidget {
   final List<Book> books;
 
-  const NewestBooksWidget({Key? key, required this.books}) : super(key: key);
+  const ExploreMoreWidget({Key? key, required this.books}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -14,9 +14,10 @@ class NewestBooksWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 24),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 12.0),
-          child: Text("Yeni Eklenenler", style: AppConstants.headlineStyle),
+          child: Text("Keşfet", style: AppConstants.headlineStyle),
         ),
         const SizedBox(height: 12),
         SizedBox(

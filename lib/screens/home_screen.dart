@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,6 +6,7 @@ import 'package:inkwave/constants.dart';
 import 'package:inkwave/models/book.dart';
 import 'package:inkwave/services/books_api.dart';
 import 'package:inkwave/widgets/newest_books_widget.dart';
+import 'package:inkwave/widgets/explore_more_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   Map<String, List<Book>> booksByInterest = {};
+  List<Book> exploreBooks = [];
   bool _isLoading = true;
   bool _hasError = false;
   List<String> _interestKeywords = [];
@@ -53,16 +56,28 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchBooks() async {
     try {
       Map<String, List<Book>> allBooks = {};
+      Set<String> allShownTitles = {};
+
       for (String interestKeyword in _interestKeywords) {
         final fetchedBooks = await BooksApi.searchBooks(interestKeyword);
         allBooks[interestKeyword] = fetchedBooks;
+        allShownTitles.addAll(fetchedBooks.map((book) => book.title));
       }
+
+      // Explore için farklı kitaplar çekelim
+      final exploreCandidates = await BooksApi.searchBooks("Kitap"); // genel arama
+      final filteredExplore = exploreCandidates
+          .where((book) => !allShownTitles.contains(book.title))
+          .toList()
+        ..shuffle();
 
       setState(() {
         booksByInterest = allBooks;
+        exploreBooks = filteredExplore.take(5).toList(); // 5 kitap göster
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint("Kitaplar yüklenemedi: $e");
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -76,6 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final newestBooks = booksByInterest.values.expand((x) => x).toSet().toList()
+      ..shuffle();
+
     return Scaffold(
       backgroundColor: AppConstants.primaryColor,
       appBar: AppBar(
@@ -116,15 +134,22 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
+
               if (_isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (_hasError)
                 const Center(
-                  child: Text("Kitaplar yüklenirken hata oluştu!",
-                      style: TextStyle(color: Colors.white)),
+                  child: Text("Kitaplar yüklenirken hata oluştu!", style: TextStyle(color: Colors.white)),
                 )
-              else
-                NewestBooksWidget(books: booksByInterest.values.expand((x) => x).toList()),
+              else ...[
+                  NewestBooksWidget(
+                    books: newestBooks.take(min(5, newestBooks.length)).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  ExploreMoreWidget(
+                    books: exploreBooks,
+                  ),
+                ],
 
               const SizedBox(height: 30),
 
@@ -139,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Center(child: CircularProgressIndicator())
                       else if (_hasError)
                         const Center(
-                          child: Text("Kitaplar yüklenirken hata oluştuu!",
+                          child: Text("Kitaplar yüklenirken hata oluştu!",
                               style: TextStyle(color: Colors.white)),
                         )
                       else
@@ -158,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 child: SizedBox(
                                   width: 150,
-                                  height: 220, // Kartın yüksekliğini sabit tut
+                                  height: 220,
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
