@@ -7,6 +7,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../screens/home_screen.dart';
 import 'login/register.dart';
 import 'login/forgot_password.dart';
+import 'package:inkwave/services/badge_service.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -62,6 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user != null) {
         await _checkAndSaveUser(user);
 
+        // ⭐️ Rozetleri değerlendir
+        await BadgeService().assignBadgesForUser(user);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -85,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        return; // Kullanıcı iptal ettiyse işlemi durdur.
+        return;
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -98,12 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
       final User? user = userCredential.user;
 
       if (user != null) {
-        // Firestore'a kaydet
         await _checkAndSaveUser(user);
 
-        if (!mounted) return;
+        // ⭐️ Rozetleri değerlendir
+        await BadgeService().assignBadgesForUser(user);
 
-        // Giriş başarılı, HomeScreen'e yönlendir
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),

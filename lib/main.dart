@@ -10,7 +10,7 @@ import 'package:inkwave/screens/home_screen.dart';
 import 'package:inkwave/screens/library_screen.dart';
 import 'package:inkwave/screens/profile/profile_screen.dart';
 import 'package:inkwave/screens/search_screen.dart';
-import 'package:inkwave/screens/book_detail_screen.dart';
+import 'package:inkwave/screens/book_detail_screen.dart' as book_detail;
 import 'package:inkwave/screens/translate_screen.dart';
 import 'package:inkwave/screens/login.dart';
 import 'package:inkwave/screens/social/social.dart';
@@ -149,7 +149,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ),
       routes: {
         '/home': (context) => const MainScreen(),
-        '/bookDetail': (context) => const BookDetailScreen(),
+        '/bookDetail': (context) => const book_detail.BookDetailScreen(),
         '/search': (context) => const SearchScreen(),
         '/add-interests': (context) => const AddInterestsScreen(),
         '/time-spent': (context) => const TimeSpentScreen(),
@@ -183,7 +183,7 @@ class _MainScreenState extends State<MainScreen> {
       const TranslateScreen(),
       const SocialPage(),
       LibraryScreen(key: ValueKey('library_$_libraryKeyCounter')),
-      const ProfileScreen(),
+      ProfileScreen(),
     ];
   }
 
