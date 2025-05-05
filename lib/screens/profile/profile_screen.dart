@@ -8,6 +8,7 @@ import 'package:inkwave/constants.dart';
 import 'package:inkwave/screens/profile/edit_personal_details.dart';
 import 'package:inkwave/widgets/settings_drawer.dart';
 import 'package:inkwave/screens/login.dart';
+import 'package:inkwave/screens/leaderboard/leaderboard.dart';
 
 import 'package:inkwave/models/badge_model.dart' as custom;
 import 'package:inkwave/services/badge_service.dart';
@@ -29,7 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshProfile(); // sayfa açıldığında tüm verileri yükle
+    _refreshProfile();
   }
 
   Future<void> _refreshProfile() async {
@@ -98,6 +99,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text("Profil", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.emoji_events_outlined, color: Colors.amber),
+          tooltip: "Liderlik Tablosu",
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
