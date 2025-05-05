@@ -1,13 +1,15 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:inkwave/constants.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 import 'dart:async';
 import 'dart:math';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:inkwave/constants.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class TimeSpentScreen extends StatefulWidget {
   const TimeSpentScreen({Key? key}) : super(key: key);
@@ -23,6 +25,7 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
   Map<String, int> _weeklyData = {};
   int _weeklyGoal = 210;
   int _streak = 0;
+  bool _isRefreshing = false;
 
   late StreamSubscription<DocumentSnapshot> _userSubscription;
   final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
@@ -34,6 +37,14 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
     _initializeNotifications();
     _scheduleDailyReminder();
     _listenToUserData();
+  }
+
+  Future<void> _refreshData() async {
+    setState(() => _isRefreshing = true);
+    _userSubscription.cancel();
+    await Future.delayed(const Duration(milliseconds: 500));
+    _listenToUserData();
+    setState(() => _isRefreshing = false);
   }
 
   void _initializeNotifications() async {
@@ -81,8 +92,7 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
       if (!doc.exists) return;
       final data = doc.data() as Map<String, dynamic>;
       final now = DateTime.now();
-      final todayKey =
-          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final todayKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
       final timeLogs = Map<String, dynamic>.from(data['time_logs'] ?? {});
       int total = data['time_spent'] ?? 0;
@@ -95,14 +105,20 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
 
       for (int i = 0; i < 7; i++) {
         DateTime day = startOfWeek.add(Duration(days: i));
-        String key =
-            "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+        String key = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
         int minutes = ((timeLogs[key] ?? 0) / 60).floor();
         last7Days.add(minutes);
         weeklyMap[fixedDays[i]] = minutes;
       }
 
       int goal = data['weekly_goal'] ?? 210;
+
+      if (!data.containsKey('weekly_goal')) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'weekly_goal': goal,
+        }, SetOptions(merge: true));
+      }
+
       int streak = data['streak'] ?? 0;
       String lastActiveStr = data['last_active_date'] ?? '';
 
@@ -140,10 +156,52 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _userSubscription.cancel();
-    super.dispose();
+  void _editGoalDialog() {
+    final controller = TextEditingController(text: _weeklyGoal.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppConstants.primaryColor,
+        title: const Text("Haftalık Hedefi Düzenle", style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Dakika olarak hedef",
+            hintStyle: TextStyle(color: Colors.white54),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.amber)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("İptal", style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              int? newGoal = int.tryParse(controller.text);
+              if (newGoal != null && newGoal > 0) {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                    'weekly_goal': newGoal,
+                  }, SetOptions(merge: true));
+
+                  setState(() => _weeklyGoal = newGoal);
+                }
+              }
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+            child: const Text("Kaydet", style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInfoCard(String label, String value) {
@@ -161,23 +219,32 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
 
   Widget _buildGoalProgressBar({required int currentWeekMinutes, required int goalMinutes}) {
     final percentage = min(currentWeekMinutes / goalMinutes, 1.0);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Haftalık Hedef", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: percentage,
-          backgroundColor: Colors.white24,
-          color: Colors.amber,
-          minHeight: 12,
-        ),
-        const SizedBox(height: 4),
-        Text("$currentWeekMinutes / $goalMinutes dk",
-            style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        const SizedBox(height: 20),
-      ],
+    return GestureDetector(
+      onTap: _editGoalDialog,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Haftalık Hedef", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: percentage,
+            backgroundColor: Colors.white24,
+            color: Colors.amber,
+            minHeight: 12,
+          ),
+          const SizedBox(height: 4),
+          Text("$currentWeekMinutes / $goalMinutes dk",
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _userSubscription.cancel();
+    super.dispose();
   }
 
   @override
@@ -188,17 +255,16 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
       backgroundColor: AppConstants.primaryColor,
       appBar: AppBar(
         backgroundColor: AppConstants.primaryColor,
-        title: const Text(
-          "Geçirilen Süre",
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text("Geçirilen Süre", style: TextStyle(color: Colors.white)),
         automaticallyImplyLeading: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        backgroundColor: Colors.black,
+        color: Colors.amber,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
           children: [
             _buildGoalProgressBar(
               currentWeekMinutes: _weeklyData.values.fold(0, (a, b) => a + b),
@@ -212,7 +278,8 @@ class _TimeSpentScreenState extends State<TimeSpentScreen> {
             const Text("Son 7 Günlük Kullanım",
                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Expanded(
+            SizedBox(
+              height: 220,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceEvenly,

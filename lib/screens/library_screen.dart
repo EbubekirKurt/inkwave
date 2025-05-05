@@ -160,7 +160,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
                     if (!snapshot.hasData || snapshot.data!.isEmpty) {
                       return const Center(
-                        child: Text("Kitap bulunamadı.",
+                        child: Text("\t\t\t\t\t\t\t\t\t\t\tKitap bulunamadı. \nİnternet bağlantınızı kontrol edin.",
                             style: TextStyle(color: Colors.white70)),
                       );
                     }

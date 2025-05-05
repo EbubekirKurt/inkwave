@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:inkwave/constants.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -10,15 +12,35 @@ class FeedbackScreen extends StatefulWidget {
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
   final TextEditingController feedbackController = TextEditingController();
+  bool isSubmitting = false;
 
-  void _submitFeedback() {
+  Future<void> _submitFeedback() async {
     final text = feedbackController.text.trim();
-    if (text.isNotEmpty) {
-      // TODO: Firestore'a geri bildirim kaydedilebilir
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Geri bildiriminiz için teşekkür ederiz.")),
-      );
-      feedbackController.clear();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (text.isNotEmpty && user != null) {
+      setState(() => isSubmitting = true);
+      try {
+        await FirebaseFirestore.instance.collection("user_feedbacks").add({
+          "userId": user.uid,
+          "message": text,
+          "timestamp": FieldValue.serverTimestamp(),
+        });
+
+        feedbackController.clear();
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Geri bildiriminiz için teşekkür ederiz.")),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Bir hata oluştu: $e")),
+        );
+      } finally {
+        if (mounted) setState(() => isSubmitting = false);
+      }
     }
   }
 
@@ -57,13 +79,22 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submitFeedback,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppConstants.primaryColor,
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isSubmitting ? null : _submitFeedback,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppConstants.primaryColor,
+                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Text("Gönder"),
               ),
-              child: const Text("Gönder"),
             ),
           ],
         ),

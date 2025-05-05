@@ -10,7 +10,7 @@ import 'package:inkwave/screens/home_screen.dart';
 import 'package:inkwave/screens/library_screen.dart';
 import 'package:inkwave/screens/profile/profile_screen.dart';
 import 'package:inkwave/screens/search_screen.dart';
-import 'package:inkwave/screens/book_detail_screen.dart';
+import 'package:inkwave/screens/book_detail_screen.dart' as book_detail;
 import 'package:inkwave/screens/translate_screen.dart';
 import 'package:inkwave/screens/login.dart';
 import 'package:inkwave/screens/social/social.dart';
@@ -37,6 +37,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _isFirstTime = true;
   bool _isProfileCompleted = false;
   bool _isInterestSelected = false;
+  bool _isOnboarded = false;  // onboarded durumu kontrol edilecek
   DateTime? _sessionStart;
 
   @override
@@ -75,6 +76,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (data['interest'] != null && (data['interest'] as List).isNotEmpty) {
       _isInterestSelected = true;
       await prefs.setBool("interest_selected", true);
+    }
+
+    if (data['onboarded'] == true) {
+      _isOnboarded = true;  // onboarded durumu kontrolü
     }
 
     setState(() => _isLoading = false);
@@ -136,7 +141,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             return const LoginScreen();
           }
 
-          if (_isFirstTime) return const OnboardingScreen();
+          if (!_isOnboarded) return const OnboardingFinishScreen();
           if (!_isInterestSelected) return const OnboardingInterestsScreen();
           if (!_isProfileCompleted) return const OnboardingFinishScreen();
           return const MainScreen();
@@ -144,7 +149,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       ),
       routes: {
         '/home': (context) => const MainScreen(),
-        '/bookDetail': (context) => const BookDetailScreen(),
+        '/bookDetail': (context) => const book_detail.BookDetailScreen(),
         '/search': (context) => const SearchScreen(),
         '/add-interests': (context) => const AddInterestsScreen(),
         '/time-spent': (context) => const TimeSpentScreen(),
@@ -178,13 +183,12 @@ class _MainScreenState extends State<MainScreen> {
       const TranslateScreen(),
       const SocialPage(),
       LibraryScreen(key: ValueKey('library_$_libraryKeyCounter')),
-      const ProfileScreen(),
+      ProfileScreen(),
     ];
   }
 
   void _onItemTapped(int index) {
     setState(() {
-      // Eğer aynı sekmeye tekrar basıldıysa key'i değiştir
       if (_selectedIndex == index) {
         if (index == 0) _homeKeyCounter++;
         if (index == 3) _libraryKeyCounter++;
@@ -216,4 +220,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

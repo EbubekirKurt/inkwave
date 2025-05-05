@@ -52,7 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final books = await BooksApi.searchBooks(_searchController.text);
+      final books = await BooksApi.searchBooks(_searchController.text, maxResults: 40);
       setState(() {
         _searchResults = books;
       });

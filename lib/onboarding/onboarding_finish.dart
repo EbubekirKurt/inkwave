@@ -41,6 +41,7 @@ class _OnboardingFinishScreenState extends State<OnboardingFinishScreen> {
     }
   }
 
+  // Profil verisini kaydetme ve profile_completed=true olarak güncelleme
   Future<void> _saveUserData() async {
     setState(() {
       _isSaving = true;
@@ -59,6 +60,7 @@ class _OnboardingFinishScreenState extends State<OnboardingFinishScreen> {
         "nationality": nationalityController.text.trim(),
         "email": user.email ?? "",
         "created_at": FieldValue.serverTimestamp(),
+        "profile_completed": true, // Profil tamamlandı olarak işaretliyor
       }, SetOptions(merge: true));
 
       Navigator.pushReplacement(
