@@ -166,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 30),
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text("Rozetler", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text("🎖️ Rozetler", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 10),
             _buildBadgesSection(),
