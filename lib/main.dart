@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:inkwave/constants.dart';
@@ -16,13 +17,21 @@ import 'package:inkwave/screens/login.dart';
 import 'package:inkwave/screens/social/social.dart';
 import 'package:inkwave/screens/settings/add_interest.dart';
 import 'package:inkwave/screens/settings/time_spent_screen.dart';
-import 'package:inkwave/onboarding/onboarding_screen.dart';
 import 'package:inkwave/onboarding/onboarding_interests.dart';
 import 'package:inkwave/onboarding/onboarding_finish.dart';
+
+import 'package:inkwave/notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
+  await NotificationService.initialize(); // 🔔 Bildirim sistemi başlatılıyor
+
   runApp(const MyApp());
 }
 
@@ -37,7 +46,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _isFirstTime = true;
   bool _isProfileCompleted = false;
   bool _isInterestSelected = false;
-  bool _isOnboarded = false;  // onboarded durumu kontrol edilecek
+  bool _isOnboarded = false;
   DateTime? _sessionStart;
 
   @override
@@ -79,7 +88,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     if (data['onboarded'] == true) {
-      _isOnboarded = true;  // onboarded durumu kontrolü
+      _isOnboarded = true;
     }
 
     setState(() => _isLoading = false);
@@ -192,7 +201,7 @@ class _MainScreenState extends State<MainScreen> {
       if (_selectedIndex == index) {
         if (index == 0) _homeKeyCounter++;
         if (index == 3) _libraryKeyCounter++;
-        _pages = _buildPages(); // Sayfaları yeniden oluştur
+        _pages = _buildPages();
       }
       _selectedIndex = index;
     });
