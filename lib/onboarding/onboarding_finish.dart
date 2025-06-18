@@ -144,7 +144,6 @@ class _OnboardingFinishScreenState extends State<OnboardingFinishScreen> {
               ),
             ),
 
-            _buildTextField("Milliyet", nationalityController),
 
             const SizedBox(height: 20),
             ElevatedButton(

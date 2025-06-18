@@ -22,6 +22,8 @@ import 'package:inkwave/onboarding/onboarding_finish.dart';
 
 import 'package:inkwave/notifications.dart';
 
+import 'onboarding/onboarding_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -65,33 +67,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _initializeAppState() async {
     final prefs = await SharedPreferences.getInstance();
-    User? user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       setState(() => _isLoading = false);
       return;
     }
 
-    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    final data = doc.data() ?? {};
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final data = doc.data() ?? {};
 
-    _isFirstTime = prefs.getBool("first_time") ?? true;
+      final isProfileCompleted = data['profile_completed'] == true;
+      final isInterestSelected = data['interest_selected'] == true;
+      final isOnboarded = data['onboarded'] == true;
 
-    if (data['name'] != null && data['surname'] != null && data['phone_number'] != null) {
-      _isProfileCompleted = true;
-      await prefs.setBool("profile_completed", true);
+      await prefs.setBool("profile_completed", isProfileCompleted);
+      await prefs.setBool("interest_selected", isInterestSelected);
+      await prefs.setBool("onboarded", isOnboarded);
+
+      setState(() {
+        _isProfileCompleted = isProfileCompleted;
+        _isInterestSelected = isInterestSelected;
+        _isOnboarded = isOnboarded;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Kullanıcı durumu alınamadı: $e");
+      setState(() => _isLoading = false);
     }
-
-    if (data['interest'] != null && (data['interest'] as List).isNotEmpty) {
-      _isInterestSelected = true;
-      await prefs.setBool("interest_selected", true);
-    }
-
-    if (data['onboarded'] == true) {
-      _isOnboarded = true;
-    }
-
-    setState(() => _isLoading = false);
   }
 
   @override
@@ -146,13 +150,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(body: Center(child: CircularProgressIndicator()));
           }
+
           if (!snapshot.hasData) {
             return const LoginScreen();
           }
 
-          if (!_isOnboarded) return const OnboardingFinishScreen();
+          // Onboarding sırası:
+          if (!_isOnboarded) return const OnboardingScreen();
           if (!_isInterestSelected) return const OnboardingInterestsScreen();
           if (!_isProfileCompleted) return const OnboardingFinishScreen();
+
           return const MainScreen();
         },
       ),
@@ -165,6 +172,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       },
     );
   }
+
 }
 
 class MainScreen extends StatefulWidget {
